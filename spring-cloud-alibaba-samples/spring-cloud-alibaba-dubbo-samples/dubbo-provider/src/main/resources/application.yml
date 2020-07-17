@@ -1,0 +1,14 @@
+
+spring:
+  application:
+    name: spring-cloud-dubbo-provider
+dubbo:
+  application:
+    name: dubbo-provider
+  protocol:
+    name: dubbo
+    port: 20880
+  registry:
+    address: N/A
+server:
+  port: 0
