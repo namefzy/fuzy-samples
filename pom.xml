@@ -29,6 +29,8 @@
         <module>spring-cloud-alibaba-samples/spring-cloud-alibaba-dubbo-samples/dubbo-provider</module>
         <module>spring-cloud-alibaba-samples/spring-cloud-alibaba-dubbo-samples/dubbo-consumer</module>
         <module>spring-cloud-alibaba-samples/spring-cloud-alibaba-dubbo-samples/api</module>
+        <module>jdk-spi</module>
+        <module>jdk-spi</module>
     </modules>
 
 

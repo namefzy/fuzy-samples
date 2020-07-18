@@ -2,6 +2,7 @@ package com.fuzy.example.service.impl;
 
 import com.fuzy.example.service.OrderService;
 import org.apache.dubbo.config.annotation.Service;
+import org.springframework.beans.factory.annotation.Value;
 
 /**
  * description: 订单实现类
@@ -12,8 +13,12 @@ import org.apache.dubbo.config.annotation.Service;
  **/
 @Service
 public class OrderServiceImpl implements OrderService {
+
+    @Value("${server.port}")
+    private int port;
     @Override
     public String getOrderByOrderCode(String orderCode) {
-        return String.format("传过来的OrderCode是%s",orderCode);
+
+        return String.format("OrderCode=%s;port=%s",orderCode,port);
     }
 }
