@@ -11,8 +11,10 @@
 
     <groupId>com.fuzy</groupId>
     <artifactId>spring-cloud-alibaba-samples</artifactId>
+    <packaging>pom</packaging>
     <modules>
         <module>spring-cloud-alibaba-dubbo-samples</module>
+        <module>spring-cloud-alibaba-dubbo-samples/dubbo-spi</module>
     </modules>
 
 </project>
