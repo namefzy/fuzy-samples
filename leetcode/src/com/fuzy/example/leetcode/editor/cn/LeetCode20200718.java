@@ -1,4 +1,4 @@
-package com.fuzy.example;
+package com.fuzy.example.leetcode.editor.cn;
 
 /**
  * @ClassName LeetCode20200718
@@ -8,10 +8,14 @@ package com.fuzy.example;
  * @Version 1.0
  */
 public class LeetCode20200718 {
-    public static void main(String[] args) {
-        System.out.println(isPalindrome1(1122442211));
-    }
 
+    public static void main(String[] args) {
+
+        String s = "hello";
+        String s1 = "ll";
+        int i = s.indexOf(s1);
+        System.out.println(i);
+    }
     public static boolean isPalindrome2(int x) {
         long startTime = System.currentTimeMillis();
         if (x < 0) {
