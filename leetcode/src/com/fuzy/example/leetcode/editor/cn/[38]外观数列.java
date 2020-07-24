@@ -42,17 +42,25 @@ package com.fuzy.example.leetcode.editor.cn;
 
 //leetcode submit region begin(Prohibit modification and deletion)
 class Solution2 {
-    public String countAndSay(int n) {
+    public static void main(String[] args) {
+        String s = countAndSay(4);
+        System.out.println(s);
+    }
+    public static String countAndSay(int n) {
         if(n==1){
             return "1";
         }
-        String s = countAndSay(n - 1);
+        String s = "21";
         StringBuilder sb = new StringBuilder();
         char[] chars = s.toCharArray();
-        for (int i = 0; i < chars.length; i++) {
-            for (int j = i+1; j < chars.length; j++) {
+
+        //21
+        for (int i = 0; i < chars.length;) {
+            for (int j = i+1; j <= chars.length; j++) {
                 if(chars[i]!=chars[j]){
-                    sb.append(j).append(chars[i]);
+                    sb.append(j-i).append(chars[i]);
+                    i=j;
+                    break;
                 }
             }
         }
