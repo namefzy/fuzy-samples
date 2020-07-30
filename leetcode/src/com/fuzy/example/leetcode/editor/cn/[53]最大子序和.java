@@ -17,7 +17,23 @@ package com.fuzy.example.leetcode.editor.cn;//给定一个整数数组 nums ，�
 //leetcode submit region begin(Prohibit modification and deletion)
 class Solution3 {
     public int maxSubArray(int[] nums) {
+        int size = nums.length;
+        int res = 0;
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < i; j++) {
+                int sum = sumOfArray(nums,j,i);
+                res = Math.max(res,sum);
+            }
+        }
         return 0;
     }
+    private int sumOfArray(int[] nums,int left,int right){
+        int res = 0;
+        for (int i = left; i < right; i++) {
+            res +=nums[i];
+        }
+        return res;
+    }
+
 }
 //leetcode submit region end(Prohibit modification and deletion)
