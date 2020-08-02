@@ -16,6 +16,6 @@ public class ProtocolBootstrap {
         System.out.println(ExtensionFactory.class.getName());
         ExtensionLoader<Protocol> extensionLoader = ExtensionLoader.getExtensionLoader(Protocol.class);
         Protocol myProtocol = extensionLoader.getExtension("myProtocol");
-        System.out.println(myProtocol.getDefaultPort());
+        myProtocol.destroy();
     }
 }

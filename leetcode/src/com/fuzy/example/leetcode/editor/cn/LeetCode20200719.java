@@ -1,4 +1,4 @@
-package com.fuzy.example;
+package com.fuzy.example.leetcode.editor.cn;
 
 import java.util.HashMap;
 import java.util.Map;
