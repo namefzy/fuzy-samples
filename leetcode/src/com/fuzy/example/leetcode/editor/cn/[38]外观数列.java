@@ -50,16 +50,20 @@ class Solution2 {
         if(n==1){
             return "1";
         }
-        String s = "21";
+        String s = countAndSay(n-1);
         StringBuilder sb = new StringBuilder();
         char[] chars = s.toCharArray();
 
         //21
         for (int i = 0; i < chars.length;) {
-            for (int j = i+1; j <= chars.length; j++) {
-                if(chars[i]!=chars[j]){
-                    sb.append(j-i).append(chars[i]);
-                    i=j;
+            for (int j = i; j < chars.length; j++) {
+                if(j==chars.length-1){
+                    sb.append(j-i+1).append(chars[i]);
+                    return sb.toString();
+                }
+                if(chars[i]!=chars[j+1]){
+                    sb.append(j-i+1).append(chars[i]);
+                    i=j+1;
                     break;
                 }
             }
