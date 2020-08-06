@@ -1,10 +1,10 @@
 # `dubbo`
 
-## 1、`dubbo`核心`SPI`
+## `dubbo`核心`SPI`
 
 ​	可以添加自定义扩展，以满足不同的需求。例如`dubbo`中协议满足不了需求，则可以自己扩展实现`Protocol`接口。
 
-### 1.1 `Quick Start`
+### 1 `Quick Start`
 
 - 引入jar包
 
@@ -57,7 +57,7 @@ public class ProtocolBootstrap {
 
 ![dubbo获取加载器](https://image-1301573777.cos.ap-chengdu.myqcloud.com/20200730223517.jpg)
 
-### 1.2 `源码解析`
+### 2`源码解析`
 
 `org.apache.dubbo.common.extension.ExtensionLoader#getExtensionLoader`:获取类加载器
 
@@ -386,7 +386,9 @@ private T createExtension(String name) {
 }
 ```
 
-### 1.3  案例
+### 3  案例
+
+**以下案例均来源于`dubbo`源码中`common`模块中的`test`文件夹下**
 
 #### 案例一:指定名称的扩展点
 
