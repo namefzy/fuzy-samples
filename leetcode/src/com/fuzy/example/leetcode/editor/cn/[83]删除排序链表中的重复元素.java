@@ -23,7 +23,7 @@ package com.fuzy.example.leetcode.editor.cn;//给定一个排序链表，删除�
  *     ListNode(int x) { val = x; }
  * }
  */
-class Solution9 {
+class Solution14 {
     public ListNode deleteDuplicates(ListNode head) {
         ListNode concurrent = head;
         while (concurrent!=null&&concurrent.next!=null){
