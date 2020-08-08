@@ -7,7 +7,6 @@ import org.springframework.boot.builder.SpringApplicationBuilder;
 
 /**
  * description: 非web启动方式
- *
  * @author: fuzy
  * @create: 2020-07-17 23:45
  * @version: 1.0.0
