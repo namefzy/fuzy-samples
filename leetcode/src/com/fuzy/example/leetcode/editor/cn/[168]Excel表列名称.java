@@ -62,15 +62,17 @@ class Solution17 {
             }
         }
         StringBuilder sb = new StringBuilder();
-        int mod = n%26;
-        n = n-mod;
-        //刚好是26的倍数
-        while(n>=26){
-            sb.append("Z");
+        while (n>0){
+            int i = n % 26;
+            if(i==0){
+                i =26;
+                n -=1;
+            }
+            sb.insert(0,map.get(i));
+            //如果z,zz,zzz,zzzz....怎么解决 第一位是z,但是这里的结果却是a
             n = n/26;
+
         }
-        sb.append(map.get(n));
-        sb.append(map.get(mod));
 
 
         return sb.toString();
