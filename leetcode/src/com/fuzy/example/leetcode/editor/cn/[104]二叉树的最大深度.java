@@ -1,5 +1,4 @@
-package com.fuzy.example.leetcode.editor.cn;
-//给定一个二叉树，找出其最大深度。
+package com.fuzy.example.leetcode.editor.cn;//给定一个二叉树，找出其最大深度。
 //
 // 二叉树的深度为根节点到最远叶子节点的最长路径上的节点数。 
 //
@@ -16,33 +15,28 @@ package com.fuzy.example.leetcode.editor.cn;
 //
 // 返回它的最大深度 3 。 
 // Related Topics 树 深度优先搜索 
-// 👍 659 👎 0
+// 👍 660 👎 0
 
 
 //leetcode submit region begin(Prohibit modification and deletion)
+
 /**
  * Definition for a binary tree node.
  * public class TreeNode {
- *     int val;
- *     TreeNode left;
- *     TreeNode right;
- *     TreeNode(int x) { val = x; }
+ * int val;
+ * TreeNode left;
+ * TreeNode right;
+ * TreeNode(int x) { val = x; }
  * }
  */
 class Solution16 {
-
     public int maxDepth(TreeNode root) {
-        if (root == null) {
+        if(root==null){
             return 0;
-        } else {
-            int leftHeight = maxDepth(root.left);
-            int rightHeight = maxDepth(root.right);
-            return Math.max(leftHeight, rightHeight) + 1;
         }
-    }
-
-    public int max(TreeNode left,TreeNode right){
-        return 0;
+        int leftDepth = maxDepth(root.left);
+        int rightDepth = maxDepth(root.right);
+        return Math.max(leftDepth,rightDepth)+1;
     }
 
     public class TreeNode {

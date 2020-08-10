@@ -54,8 +54,7 @@ public class DubboConsumerApplication {
     @GetMapping("/user")
     public String getUserWithOrder(){
         String orderCode = "M1234";
-        String orderByOrderCode = orderService.getOrderByOrderCode(orderCode);
-        return orderByOrderCode;
+        return orderService.getOrderByOrderCode(orderCode);
     }
     public static void main(String[] args) {
         SpringApplication.run(DubboConsumerApplication.class,args);
