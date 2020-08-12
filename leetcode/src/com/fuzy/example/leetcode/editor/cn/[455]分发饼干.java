@@ -37,29 +37,28 @@ package com.fuzy.example.leetcode.editor.cn;
 // 👍 188 👎 0
 
 
+import java.util.Arrays;
+
 //leetcode submit region begin(Prohibit modification and deletion)
 class Solution21 {
     public static void main(String[] args) {
         int[] g = new int[]{1,2,3};
-        int[] s = new int[]{1,1};
+        int[] s = new int[]{1,1,4,6};
         System.out.println(findContentChildren(g,s));
     }
     public static int findContentChildren(int[] g, int[] s) {
-        int length = Math.min(g.length,s.length);
-        //假设都是有序数组
-        int n =0;
-        int j = 0;
-        for (int i = 0; i < length; i++) {
-            for (int k= j; k < length;) {
-                if (s[k]>=g[i]){
-                    n++;
-                    j++;
-                    break;
-                }
-                j++;
+        Arrays.sort(g);
+        Arrays.sort(s);
+        int i=0;
+        int j=0;
+        while (i<g.length&&j<s.length){
+            if(s[j]>=g[i]){
+                i++;
             }
+            j++;
         }
-        return n;
+
+        return i;
     }
 }
 //leetcode submit region end(Prohibit modification and deletion)
