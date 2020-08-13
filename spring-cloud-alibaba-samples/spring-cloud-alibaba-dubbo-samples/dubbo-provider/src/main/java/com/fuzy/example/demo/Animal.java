@@ -12,7 +12,6 @@ import javax.annotation.PostConstruct;
  */
 public abstract class Animal {
 
-    @PostConstruct
     public void init(String name,String age){
         System.out.println(name+":"+age);
     }

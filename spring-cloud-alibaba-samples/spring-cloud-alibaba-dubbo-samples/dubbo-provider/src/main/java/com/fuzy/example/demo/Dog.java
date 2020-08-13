@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
  * @email fuzy@ufen.cn
  * @date 2020/8/10 14:36
  */
-@Service
 public class Dog extends Animal{
 
 }

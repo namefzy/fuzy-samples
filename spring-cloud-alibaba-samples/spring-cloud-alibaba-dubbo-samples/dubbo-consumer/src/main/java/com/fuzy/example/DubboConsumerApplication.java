@@ -38,12 +38,7 @@ public class DubboConsumerApplication {
      * mock:服务降级；当服务提供方出现网络异常无法访问时，客户端不抛出异常，而是通过降级配置返回兜底数据。
      *      例如：远程服务挂了，此时通过服务降级返回友好提示数据
      */
-    @Reference(
-            url = "dubbo://192.168.43.99:20880/com.fuzy.example.com.fuzy.example.service.OrderService",
-            check = true,
-            cluster = "failover",
-            retries = 4,
-            loadbalance = "roundrobin")
+    @Reference
     private OrderService orderService;
 
     @Bean
