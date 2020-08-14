@@ -1,4 +1,4 @@
-package com.fuzy.example.leetcode.editor.cn.leetcode.editor.cn;//给定一个数组，将数组中的元素向右移动 k 个位置，其中 k 是非负数。
+package com.fuzy.example.leetcode.editor.cn;//给定一个数组，将数组中的元素向右移动 k 个位置，其中 k 是非负数。
 //
 // 示例 1: 
 //
@@ -29,7 +29,7 @@ package com.fuzy.example.leetcode.editor.cn.leetcode.editor.cn;//给定一个数
 
 
 //leetcode submit region begin(Prohibit modification and deletion)
-class Solution18 {
+class Solution25 {
     public static void main(String[] args) {
         int[] nums = new int[]{1,2,3,4,5,6,7};
         int k = 3;
