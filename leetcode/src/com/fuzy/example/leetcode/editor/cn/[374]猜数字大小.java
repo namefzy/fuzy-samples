@@ -32,7 +32,7 @@ package com.fuzy.example.leetcode.editor.cn;
  * int guess(int num);
  */
 
-class Solution22 extends GuessGame {
+class Solution24 extends GuessGame {
     // -1 : 系统选出的数字比你猜测的数字小
 // 1 : 系统选出的数字比你猜测的数字大
 // 0 : 恭喜！你猜对了！
