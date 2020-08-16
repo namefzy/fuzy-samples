@@ -15,6 +15,6 @@ import org.springframework.stereotype.Component;
 public class MyApplicationListener implements ApplicationListener<ApplicationEvent> {
     @Override
     public void onApplicationEvent(ApplicationEvent event) {
-        System.out.println(event);
+        System.out.println("正常方式实现："+event);
     }
 }

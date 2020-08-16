@@ -5,6 +5,7 @@ import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.ComponentScan;
 
 /**
@@ -17,7 +18,11 @@ import org.springframework.context.annotation.ComponentScan;
 @SpringBootApplication
 public class DubboClientApplication {
     public static void main(String[] args) {
-        new SpringApplicationBuilder(DubboClientApplication.class)
+        ConfigurableApplicationContext context = new SpringApplicationBuilder(DubboClientApplication.class)
                 .run(args);
+        String[] beanDefinitionNames = context.getBeanDefinitionNames();
+        for (int i = 0; i < beanDefinitionNames.length; i++) {
+            System.err.println(beanDefinitionNames[i]);
+        }
     }
 }
