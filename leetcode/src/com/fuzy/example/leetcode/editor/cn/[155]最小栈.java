@@ -47,27 +47,52 @@ import java.util.Stack;
 
 //leetcode submit region begin(Prohibit modification and deletion)
 class MinStack29 {
+    public static void main(String[] args) {
 
-    private List<Integer> list = new ArrayList();
+        Stack<Integer> stack = new Stack();
+        System.out.println(stack.isEmpty());
+        Object peek = stack.peek();
+
+        System.out.println(peek);
+    }
+
+    private Stack<Integer> stack;
+    private Stack<Integer> minStack;
     /** initialize your data structure here. */
     public MinStack29() {
+        stack = new Stack<>();
+        minStack = new Stack<>();
     }
     
     public void push(int x) {
-        list.add(x);
+        stack.push(x);
+        if(!minStack.isEmpty()){
+            Integer top = minStack.peek();
+            if(x<=top){
+                minStack.push(x);
+            }
+        }else{
+            minStack.push(x);
+        }
     }
     
     public void pop() {
-        list.remove(0);
+        int pop = stack.pop();
+
+        int top = minStack.peek();
+        //等于的时候再出栈
+        if (pop == top) {
+            minStack.pop();
+        }
+
     }
     
     public int top() {
-        Integer value = list.get(list.size() - 1);
-        return value;
+        return stack.peek();
     }
     
     public int getMin() {
-
+        return minStack.peek();
     }
 }
 

@@ -390,7 +390,7 @@ private T createExtension(String name) {
 
 **以下案例均来源于`dubbo`源码中`common`模块中的`test`文件夹下**
 
-#### 案例一:指定名称的扩展点
+#### 3.1  指定名称的扩展点
 
 ```java
 @Test
@@ -401,7 +401,9 @@ public void test_staticAdaptiveClass()throws Exception{
 }
 ```
 
-#### 案例二：自适应扩展点-（类上加@Adaptive注解）
+#### 3.2 自适应扩展点
+
+##### 3.2.1、类上加@Adaptive注解
 
 ```java
 /**
@@ -417,7 +419,7 @@ public void test_useAdaptiveClass() throws Exception {
 }
 ```
 
-#### 案例三：激活扩展点-（方法上加@Adaptive注解）
+##### 3.2.2  方法上加@Adaptive注解
 
 **配置文件**
 
@@ -491,7 +493,7 @@ public class SimpleExt$Adaptive implements org.apache.dubbo.common.extension.ext
 }
 ```
 
-
+#### 3.3  激活扩展点
 
 
 
