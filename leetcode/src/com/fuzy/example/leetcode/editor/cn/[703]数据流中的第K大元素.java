@@ -10,9 +10,13 @@ package com.fuzy.example.leetcode.editor.cn;
 //int k = 3;
 //int[] arr = [4,5,8,2];
 //KthLargest kthLargest = new KthLargest(3, arr);
+// 2 3 4 5 8
 //kthLargest.add(3);   // returns 4
+//2 3 5 5 8
 //kthLargest.add(5);   // returns 5
+//2 3 5 8 10
 //kthLargest.add(10);  // returns 5
+//
 //kthLargest.add(9);   // returns 8
 //kthLargest.add(4);   // returns 8
 // 

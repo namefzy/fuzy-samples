@@ -10,7 +10,7 @@ import javax.annotation.PostConstruct;
  * @email fuzy@ufen.cn
  * @date 2020/8/10 14:35
  */
-public abstract class Animal {
+public abstract class Animal implements Person{
 
     public void init(String name,String age){
         System.out.println(name+":"+age);
