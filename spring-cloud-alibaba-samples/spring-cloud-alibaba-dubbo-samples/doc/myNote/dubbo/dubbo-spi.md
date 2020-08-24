@@ -4,7 +4,14 @@
 
 ​	可以添加自定义扩展，以满足不同的需求。例如`dubbo`中协议满足不了需求，则可以自己扩展实现`Protocol`接口。
 
-### 1 `Quick Start`
+### 1、`dubbo`扩展点与`jdk spi`机制对比
+
+|         | 加载时机                                                     | `IOC和APP支持`                                     |
+| ------- | ------------------------------------------------------------ | -------------------------------------------------- |
+| `dubbo` | `Dubbo SPI` 是按需加载，只加载需要使用的实现类。同时带有缓存支持。 | 支持，并且一个扩展点可以直接`setter`注入其它扩展点 |
+| `jdk`   | 一次性实例化扩展点所有实现（加载速度缓慢）                   | 否                                                 |
+
+### 2`Quick Start`
 
 - 引入jar包
 
@@ -57,7 +64,7 @@ public class ProtocolBootstrap {
 
 ![dubbo获取加载器](https://image-1301573777.cos.ap-chengdu.myqcloud.com/20200730223517.jpg)
 
-### 2`源码解析`
+### 3`源码解析`
 
 `org.apache.dubbo.common.extension.ExtensionLoader#getExtensionLoader`:获取类加载器
 
@@ -386,11 +393,11 @@ private T createExtension(String name) {
 }
 ```
 
-### 3  案例
+### 4  案例
 
-**以下案例均来源于`dubbo`源码中`common`模块中的`test`文件夹下**
+**以下案例均来源于`dubbo`源码中`common`模块中的`ExtensionLoader_Adaptive_Test`类中**
 
-#### 3.1  指定名称的扩展点
+#### 4.1  指定名称的扩展点
 
 ```java
 @Test
@@ -401,9 +408,9 @@ public void test_staticAdaptiveClass()throws Exception{
 }
 ```
 
-#### 3.2 自适应扩展点
+#### 4.2 自适应扩展点
 
-##### 3.2.1、类上加@Adaptive注解
+##### 4.2.1、类上加@Adaptive注解
 
 ```java
 /**
@@ -419,7 +426,7 @@ public void test_useAdaptiveClass() throws Exception {
 }
 ```
 
-##### 3.2.2  方法上加@Adaptive注解
+##### 4.2.2  方法上加@Adaptive注解
 
 **配置文件**
 
@@ -493,7 +500,54 @@ public class SimpleExt$Adaptive implements org.apache.dubbo.common.extension.ext
 }
 ```
 
-#### 3.3  激活扩展点
+#### 4.3  激活扩展点
+
+​	自动激活扩展点，有点类似我们讲`springboot`的时候用到的`conditional`，根据条件进行自动激活。但是这里设计的初衷是，对 于一个类会加载多个扩展点的实现，这个时候可以通过自动激活扩展点进行动态加载。以下代码来自于`dubbo`源码中的`common`模块下的`ExtensionLoaderTest`类中
+
+```java
+@Test
+public void testLoadActivateExtension() throws Exception {
+    // test default
+    URL url = URL.valueOf("test://localhost/test");
+    List<ActivateExt1> list = ExtensionLoader.getExtensionLoader(ActivateExt1.class)
+        .getActivateExtension(url, new String[]{}, "default_group");
+    Assertions.assertEquals(1, list.size());
+    Assertions.assertSame(list.get(0).getClass(), ActivateExt1Impl1.class);
+
+    // test group
+    url = url.addParameter(GROUP_KEY, "group1");
+    list = ExtensionLoader.getExtensionLoader(ActivateExt1.class)
+        .getActivateExtension(url, new String[]{}, "group1");
+    Assertions.assertEquals(1, list.size());
+    Assertions.assertSame(list.get(0).getClass(), GroupActivateExtImpl.class);
+
+    // test old @Activate group
+    url = url.addParameter(GROUP_KEY, "old_group");
+    list = ExtensionLoader.getExtensionLoader(ActivateExt1.class)
+        .getActivateExtension(url, new String[]{}, "old_group");
+    Assertions.assertEquals(2, list.size());
+    Assertions.assertTrue(list.get(0).getClass() == OldActivateExt1Impl2.class
+                          || list.get(0).getClass() == OldActivateExt1Impl3.class);
+
+    // test value
+    url = url.removeParameter(GROUP_KEY);
+    url = url.addParameter(GROUP_KEY, "value");
+    url = url.addParameter("value", "value");
+    list = ExtensionLoader.getExtensionLoader(ActivateExt1.class)
+        .getActivateExtension(url, new String[]{}, "value");
+    Assertions.assertEquals(1, list.size());
+    Assertions.assertSame(list.get(0).getClass(), ValueActivateExtImpl.class);
+
+    // test order
+    url = URL.valueOf("test://localhost/test");
+    url = url.addParameter(GROUP_KEY, "order");
+    list = ExtensionLoader.getExtensionLoader(ActivateExt1.class)
+        .getActivateExtension(url, new String[]{}, "order");
+    Assertions.assertEquals(2, list.size());
+    Assertions.assertSame(list.get(0).getClass(), OrderActivateExtImpl1.class);
+    Assertions.assertSame(list.get(1).getClass(), OrderActivateExtImpl2.class);
+}
+```
 
 
 

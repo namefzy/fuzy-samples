@@ -103,21 +103,29 @@ public class DubboClientApplication {
 }
 ```
 
-## 2、基本配置
+## 2、`Dubbo服务注册具体细节`
 
-**多协议配置**
+#### 解析服务
 
-```xml
- <dubbo:application name="world"  />
-    <dubbo:registry id="registry" address="10.20.141.150:9090" username="admin" password="hello1234" />
-    <!-- 多协议配置 -->
-    <dubbo:protocol name="dubbo" port="20880" />
-    <dubbo:protocol name="rmi" port="1099" />
-    <!-- 使用dubbo协议暴露服务 -->
-    <dubbo:service interface="com.alibaba.hello.api.HelloService" version="1.0.0" ref="helloService" protocol="dubbo" />
-    <!-- 使用rmi协议暴露服务 -->
-    <dubbo:service interface="com.alibaba.hello.api.DemoService" version="1.0.0" ref="demoService" protocol="rmi" /> 
-```
+​	在 `ServiceConfig.export()` 或 `ReferenceConfig.get()` 初始化时，将 Bean 对象转换 URL 格式，所有 Bean 属性转成 URL 的参数。然后将 URL 传给 [协议扩展点](http://dubbo.apache.org/zh-cn/docs/dev/impls/protocol.html)，基于扩展点的 [扩展点自适应机制](http://dubbo.apache.org/zh-cn/docs/dev/SPI.html)，根据 URL 的协议头，进行不同协议的服务暴露或引用。
+
+#### 暴露服务
+
+##### 1、只暴露服务端口
+
+​	在没有注册中心，直接暴露提供者的情况下 [[1\]](http://dubbo.apache.org/zh-cn/docs/dev/implementation.html#fn1)，`ServiceConfig` 解析出的 URL 的格式为： `dubbo://service-host/com.fuzy.example.service.OrderService?version=1.0.0`。基于扩展点自适应机制，通过 URL 的 `dubbo://` 协议头识别，直接调用 `DubboProtocol`的 `export()` 方法，打开服务端口。
+
+##### 2、向注册中心暴露服务
+
+​	在有注册中心，需要注册提供者地址的情况下 [[2\]](http://dubbo.apache.org/zh-cn/docs/dev/implementation.html#fn2)，`ServiceConfig` 解析出的 URL 的格式为: `registry://registry-host/org.apache.dubbo.registry.RegistryService?export=URL.encode("dubbo://service-host/com.fuzy.example.service.OrderService?version=1.0.0")`，
+
+​	基于扩展点自适应机制，通过 URL 的 `registry://` 协议头识别，就会调用 `RegistryProtocol` 的 `export()` 方法，将 `export` 参数中的提供者 URL，先注册到注册中心。
+
+​	再重新传给 `Protocol` 扩展点进行暴露： `dubbo://service-host/com.fuzy.example.service.OrderService?version=1.0.0`，然后基于扩展点自适应机制，通过提供者 URL 的 `dubbo://` 协议头识别，就会调用 `DubboProtocol` 的 `export()` 方法，打开服务端口。
+
+http://dubbo.apache.org/zh-cn/docs/dev/implementation.html
+
+
 
 
 
