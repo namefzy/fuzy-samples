@@ -111,11 +111,11 @@ public class DubboClientApplication {
 
 #### 暴露服务
 
-##### 1、只暴露服务端口
+##### a、只暴露服务端口
 
 ​	在没有注册中心，直接暴露提供者的情况下 [[1\]](http://dubbo.apache.org/zh-cn/docs/dev/implementation.html#fn1)，`ServiceConfig` 解析出的 URL 的格式为： `dubbo://service-host/com.fuzy.example.service.OrderService?version=1.0.0`。基于扩展点自适应机制，通过 URL 的 `dubbo://` 协议头识别，直接调用 `DubboProtocol`的 `export()` 方法，打开服务端口。
 
-##### 2、向注册中心暴露服务
+##### b、向注册中心暴露服务
 
 ​	在有注册中心，需要注册提供者地址的情况下 [[2\]](http://dubbo.apache.org/zh-cn/docs/dev/implementation.html#fn2)，`ServiceConfig` 解析出的 URL 的格式为: `registry://registry-host/org.apache.dubbo.registry.RegistryService?export=URL.encode("dubbo://service-host/com.fuzy.example.service.OrderService?version=1.0.0")`，
 
@@ -123,11 +123,81 @@ public class DubboClientApplication {
 
 ​	再重新传给 `Protocol` 扩展点进行暴露： `dubbo://service-host/com.fuzy.example.service.OrderService?version=1.0.0`，然后基于扩展点自适应机制，通过提供者 URL 的 `dubbo://` 协议头识别，就会调用 `DubboProtocol` 的 `export()` 方法，打开服务端口。
 
+##### c、拦截服务
+
+​	基于扩展点自适应机制，所有的 `Protocol` 扩展点都会自动套上 `Wrapper` 类。
+
+​	基于 `ProtocolFilterWrapper` 类，将所有 `Filter` 组装成链，在链的最后一节调用真实的引用。
+
+​	基于 `ProtocolListenerWrapper` 类，将所有 `InvokerListener` 和 `ExporterListener` 组装集合，在暴露和引用前后，进行回调。
+
+​	包括监控在内，所有附加功能，全部通过 `Filter` 拦截实现。
+
+##### d、服务提供者暴露服务的详细过程
+
+![/dev-guide/images/dubbo_rpc_export.jpg](http://dubbo.apache.org/docs/zh-cn/dev/sources/images/dubbo_rpc_export.jpg)
+
+上图是服务提供者暴露服务的主过程：
+
+​	首先 `ServiceConfig` 类拿到对外提供服务的实际类 ref(如：HelloWorldImpl),然后通过 `ProxyFactory` 类的 `getInvoker` 方法使用 ref 生成一个 `AbstractProxyInvoker` 实例，到这一步就完成具体服务到 `Invoker` 的转化。接下来就是 `Invoker` 转换到 `Exporter` 的过程。
+
+​	Dubbo 处理服务暴露的关键就在 `Invoker` 转换到 `Exporter` 的过程，上图中的红色部分。下面我们以 Dubbo 和 RMI 这两种典型协议的实现来进行说明：
+
+Dubbo 的实现
+
+​	Dubbo 协议的 `Invoker` 转为 `Exporter` 发生在 `DubboProtocol` 类的 `export` 方法，它主要是打开 socket 侦听服务，并接收客户端发来的各种请求，通讯细节由 Dubbo 自己实现。
+
+RMI 的实现
+
+​	RMI 协议的 `Invoker` 转为 `Exporter` 发生在 `RmiProtocol`类的 `export` 方法，它通过 Spring 或 Dubbo 或 JDK 来实现 RMI 服务，通讯细节这一块由 JDK 底层来实现，这就省了不少工作量。
+
+#### Invoker
+
+​	在服务服务流程中有这样一段代码：`Invoker<?> invoker = PROXY_FACTORY.getInvoker(ref, (Class) interfaceClass, registryURL.addParameterAndEncoded(EXPORT_KEY, url.toFullString()));`在`spi`机制下最终对调用`JavassistProxyFactory.getInvoker`方法：
+
+```java
+public <T> Invoker<T> getInvoker(T proxy, Class<T> type, URL url) {
+    // TODO Wrapper cannot handle this scenario correctly: the classname contains '$'
+    final Wrapper wrapper = Wrapper.getWrapper(proxy.getClass().getName().indexOf('$') < 0 ? proxy.getClass() : type);
+    //proxy:接口的实现
+    //type:接口全称
+   // url:协议地址：registry://...
+    return new AbstractProxyInvoker<T>(proxy, type, url) {
+        @Override
+        protected Object doInvoke(T proxy, String methodName,
+                                  Class<?>[] parameterTypes,
+                                  Object[] arguments) throws Throwable {
+            return wrapper.invokeMethod(proxy, methodName, parameterTypes, arguments);
+        }
+    };
+}
+```
+
+​	通过断点的方式在 `Wrapper.getWrapper `中的` makeWrapper`，会创建一个动态代理，核心的方法 `invokeMethod`代码如下:
+
+```java
+public Object invokeMethod(Object o, String n, Class[] p, Object[] v) throws java.lang.reflect.InvocationTargetException {
+ 	cn.fuzy.example.OrderService w;
+ 	try {
+ 		w = ((cn.fuzy.example.ISayHelloService) $1);
+     } catch (Throwable e) {
+     	throw new IllegalArgumentException(e);
+     }
+     try {
+         if ("getOrderByOrderCode".equals($2) && $3.length == 1) {
+         	return ($w) w.sayHello((java.lang.String) $4[0]);
+         }
+     } catch (Throwable e) {
+     	throw new java.lang.reflect.InvocationTargetException(e);
+     }
+     throw new org.apache.dubbo.common.bytecode.NoSuchMethodException("Not found method \"" + $2 + "\" in class cn.fuzy.example.ISayHelloService.");
+ }
+
+```
+
+​	构建好了代理类之后，返回一个`AbstractproxyInvoker`,并且它实现了`doInvoke`方法，这个地方似乎看到了`dubbo`消费者调用过 来的时候触发的影子，因为`wrapper.invokeMethod`本质上就是触发上面动态代理类的方法`invokeMethod`。所以，简单总结一下`Invoke`本质上应该是一个代理，经过层层包装最终进行了发布。当消费者发起请求的时候，会获得这个`invoker`进行调用。
+
 http://dubbo.apache.org/zh-cn/docs/dev/implementation.html
-
-
-
-
 
 ## 3、源码分析
 
@@ -396,6 +466,7 @@ public class DubboBootstrapApplicationListener extends OneTimeExecutionApplicati
 
 ```java
 public DubboBootstrap start() {
+    //自旋 except =false, update=true
     if (started.compareAndSet(false, true)) {
         initialize();
         if (logger.isInfoEnabled()) {
@@ -512,17 +583,16 @@ private void doExportUrls() {
         this,
         serviceMetadata
     );
-
+	//registry://127.0.0.1:2181/org.apache.dubbo.registry.RegistryService?application=dubbo-provider&dubbo=2.0.2&pid=13160&qos.enable=false&registry=zookeeper&release=2.7.5&timeout=25000&timestamp=1598363362970
     List<URL> registryURLs = ConfigValidationUtils.loadRegistries(this, true);
 
     for (ProtocolConfig protocolConfig : protocols) {
         String pathKey = URL.buildKey(getContextPath(protocolConfig)
                                       .map(p -> p + "/" + path)
                                       .orElse(path), group, version);
-        // In case user specified path, register service one more time to map it to path.
         repository.registerService(pathKey, interfaceClass);
-        // TODO, uncomment this line once service key is unified
         serviceMetadata.setServiceKey(pathKey);
+        //protocolConfig:<dubbo:protocol name="dubbo" port="20880" valid="true" id="dubbo" prefix="dubbo.protocols." />
         doExportUrlsFor1Protocol(protocolConfig, registryURLs);
     }
 }
@@ -543,6 +613,7 @@ private void doExportUrlsFor1Protocol(ProtocolConfig protocolConfig, List<URL> r
     // export service
     String host = findConfigedHosts(protocolConfig, registryURLs, map);
     Integer port = findConfigedPorts(protocolConfig, name, map);
+    //dubbo://192.168.199.203:20880/com.fuzy.example.service.OrderService?anyhost=true&application=dubbo-provider&bind.ip=192.168.199.203&bind.port=20880&deprecated=false&dubbo=2.0.2&dynamic=true&generic=false&interface=com.fuzy.example.service.OrderService&methods=getOrderByOrderCode&pid=13160&qos.enable=false&release=2.7.5&side=provider&timestamp=1598363447282
     URL url = new URL(name, host, port, getContextPath(protocolConfig).map(p -> p + "/" + path).orElse(path), map);
 
     // You can customize Configurator to append extra parameters
@@ -556,11 +627,11 @@ private void doExportUrlsFor1Protocol(ProtocolConfig protocolConfig, List<URL> r
     // don't export when none is configured
     if (!SCOPE_NONE.equalsIgnoreCase(scope)) {
 
-        // export to local if the config is not remote (export to remote only when config is remote)
+        //injvm 发布到本地
         if (!SCOPE_REMOTE.equalsIgnoreCase(scope)) {
             exportLocal(url);
         }
-        // export to remote if the config is not local (export to local only when config is local)
+        //发布远程服务
         if (!SCOPE_LOCAL.equalsIgnoreCase(scope)) {
             if (CollectionUtils.isNotEmpty(registryURLs)) {
                 for (URL registryURL : registryURLs) {
@@ -581,15 +652,14 @@ private void doExportUrlsFor1Protocol(ProtocolConfig protocolConfig, List<URL> r
                         }
                     }
 
-                    // For providers, this is used to enable custom proxy to generate invoker
                     String proxy = url.getParameter(PROXY_KEY);
                     if (StringUtils.isNotEmpty(proxy)) {
                         registryURL = registryURL.addParameter(PROXY_KEY, proxy);
                     }
-
+				  //invoker Dubbo的核心模型
                     Invoker<?> invoker = PROXY_FACTORY.getInvoker(ref, (Class) interfaceClass, registryURL.addParameterAndEncoded(EXPORT_KEY, url.toFullString()));
                     DelegateProviderMetaDataInvoker wrapperInvoker = new DelegateProviderMetaDataInvoker(invoker, this);
-
+					
                     Exporter<?> exporter = protocol.export(wrapperInvoker);
                     exporters.add(exporter);
                 }
@@ -599,8 +669,8 @@ private void doExportUrlsFor1Protocol(ProtocolConfig protocolConfig, List<URL> r
                 }
                 Invoker<?> invoker = PROXY_FACTORY.getInvoker(ref, (Class) interfaceClass, url);
                 DelegateProviderMetaDataInvoker wrapperInvoker = new DelegateProviderMetaDataInvoker(invoker, this);
-
-                Exporter<?> exporter = protocol.export(wrapperInvoker);
+			   //此时的wrappinerInvoker url为registry:// ,所以会调用Registry方法
+                Exporter<?> exporter = protocol.export(wrappinerInvoker);
                 exporters.add(exporter);
             }
             /**
@@ -616,6 +686,292 @@ private void doExportUrlsFor1Protocol(ProtocolConfig protocolConfig, List<URL> r
     this.urls.add(url);
 }
 ```
+
+`org.apache.dubbo.registry.integration.RegistryProtocol#export`:实现服务注册
+
+> - 实现对应协议的服务发布 
+> - 实现服务注册 
+> -  订阅服务重写
+
+```java
+//originInvoker:registry协议
+public <T> Exporter<T> export(final Invoker<T> originInvoker) throws RpcException {
+    //zookeeper://协议 
+    URL registryUrl = getRegistryUrl(originInvoker);
+    //dubbo://协议
+    URL providerUrl = getProviderUrl(originInvoker);
+
+    final URL overrideSubscribeUrl = getSubscribedOverrideUrl(providerUrl);
+    final OverrideListener overrideSubscribeListener = new OverrideListener(overrideSubscribeUrl, originInvoker);
+    overrideListeners.put(overrideSubscribeUrl, overrideSubscribeListener);
+
+    providerUrl = overrideUrlWithConfig(providerUrl, overrideSubscribeListener);
+    //这里就交给了具体的协议去暴露服务
+    final ExporterChangeableWrapper<T> exporter = doLocalExport(originInvoker, providerUrl);
+
+    final Registry registry = getRegistry(originInvoker);
+    final URL registeredProviderUrl = getUrlToRegistry(providerUrl, registryUrl);
+    boolean register = providerUrl.getParameter(REGISTER_KEY, true);
+    if (register) {
+        //注册服务
+        register(registryUrl, registeredProviderUrl);
+    }
+
+    registry.subscribe(overrideSubscribeUrl, overrideSubscribeListener);
+
+    exporter.setRegisterUrl(registeredProviderUrl);
+    exporter.setSubscribeUrl(overrideSubscribeUrl);
+    return new DestroyableExporter<>(exporter);
+}
+```
+
+`org.apache.dubbo.registry.integration.RegistryProtocol#doLocalExport`:导出`Invoker`
+
+```java
+private <T> ExporterChangeableWrapper<T> doLocalExport(final Invoker<T> originInvoker, URL providerUrl) {
+    String key = getCacheKey(originInvoker);
+
+    return (ExporterChangeableWrapper<T>) bounds.computeIfAbsent(key, s -> {
+        //invokerDelegate dubbo协议
+        Invoker<?> invokerDelegate = new InvokerDelegate<>(originInvoker, providerUrl);
+        ////将 invoker 转换为 exporter 并启动 netty 服务
+        return new ExporterChangeableWrapper<>((Exporter<T>) protocol.export(invokerDelegate), originInvoker);
+    });
+}
+```
+
+​	`InvokerDelegete: 是 RegistryProtocol 的一个静态内部类，该类是一个 originInvoker 的委托类，该类存储了 originInvoker，其 父类 InvokerWrapper 还会存储 providerUrl，InvokerWrapper 会调用 originInvoker 的 invoke 方法，也会销毁 invoker。可以 管理 invoker 的生命周期`。
+
+`org.apache.dubbo.rpc.protocol.dubbo.DubboProtocol#export`:启动netty服务
+
+```java
+public <T> Exporter<T> export(Invoker<T> invoker) throws RpcException {
+    //真正注册的元素据 dubbo://192.168.199.203:20880/com.fuzy.example.service.OrderService?anyhost=true&application=dubbo-provider&bind.ip=192.168.199.203&bind.port=20880&deprecated=false&dubbo=2.0.2&dynamic=true&generic=false&interface=com.fuzy.example.service.OrderService&methods=getOrderByOrderCode&pid=3852&qos.enable=false&release=2.7.5&side=provider&timestamp=1598367873375
+    URL url = invoker.getUrl();
+
+    //com.fuzy.example.service.OrderService:20880
+    String key = serviceKey(url);
+    DubboExporter<T> exporter = new DubboExporter<T>(invoker, key, exporterMap);
+    exporterMap.put(key, exporter);
+
+    ....省略部分代码
+	//dubbo://192.168.199.203:20880/com.fuzy.example.service.OrderService?anyhost=true&application=dubbo-provider&bind.ip=192.168.199.203&bind.port=20880&deprecated=false&dubbo=2.0.2&dynamic=true&generic=false&interface=com.fuzy.example.service.OrderService&methods=getOrderByOrderCode&pid=3852&qos.enable=false&release=2.7.5&side=provider&timestamp=1598367873375
+    openServer(url);
+    optimizeSerialization(url);
+
+    return exporter;
+}
+```
+
+`org.apache.dubbo.rpc.protocol.dubbo.DubboProtocol#openServer`:启动netty暴露端口
+
+```java
+private void openServer(URL url) {
+    String key = url.getAddress();
+    //client can export a service which's only for server to invoke
+    boolean isServer = url.getParameter(IS_SERVER_KEY, true);
+    if (isServer) {
+        ProtocolServer server = serverMap.get(key);
+        if (server == null) {
+            synchronized (this) {
+                server = serverMap.get(key);
+                if (server == null) {
+                    // 创建服务器实例
+                    serverMap.put(key, createServer(url));
+                }
+            }
+        } else {
+            // server supports reset, use together with override
+            server.reset(url);
+        }
+    }
+}
+```
+
+`org.apache.dubbo.rpc.protocol.dubbo.DubboProtocol#createServer`:创建服务
+
+```java
+private ProtocolServer createServer(URL url) {
+    //dubbo://192.168.199.203:20880/com.fuzy.example.service.OrderService?anyhost=true&application=dubbo-provider&bind.ip=192.168.199.203&bind.port=20880&channel.readonly.sent=true&codec=dubbo&deprecated=false&dubbo=2.0.2&dynamic=true&generic=false&heartbeat=60000&interface=com.fuzy.example.service.OrderService&methods=getOrderByOrderCode&pid=3852&qos.enable=false&release=2.7.5&side=provider&timestamp=1598367873375
+    url = URLBuilder.from(url)
+        // send readonly event when server closes, it's enabled by default
+        .addParameterIfAbsent(CHANNEL_READONLYEVENT_SENT_KEY, Boolean.TRUE.toString())
+        // enable heartbeat by default
+        .addParameterIfAbsent(HEARTBEAT_KEY, String.valueOf(DEFAULT_HEARTBEAT))
+        .addParameter(CODEC_KEY, DubboCodec.NAME)
+        .build();
+    String str = url.getParameter(SERVER_KEY, DEFAULT_REMOTING_SERVER);
+
+    if (str != null && str.length() > 0 && !ExtensionLoader.getExtensionLoader(Transporter.class).hasExtension(str)) {
+        throw new RpcException("Unsupported server type: " + str + ", url: " + url);
+    }
+
+    ExchangeServer server;
+    try {
+        //绑定服务器
+        server = Exchangers.bind(url, requestHandler);
+    } catch (RemotingException e) {
+        throw new RpcException("Fail to start server(url: " + url + ") " + e.getMessage(), e);
+    }
+
+    str = url.getParameter(CLIENT_KEY);
+    if (str != null && str.length() > 0) {
+        Set<String> supportedTypes = ExtensionLoader.getExtensionLoader(Transporter.class).getSupportedExtensions();
+        if (!supportedTypes.contains(str)) {
+            throw new RpcException("Unsupported client type: " + str);
+        }
+    }
+
+    return new DubboProtocolServer(server);
+}
+```
+
+中间省略一些调用路径，最终执行监听服务端口的方法：
+
+`org.apache.dubbo.remoting.transport.AbstractServer#doOpen`:实现类调用抽象类的具体实现，开启netty服务
+
+```java
+protected void doOpen() throws Throwable {
+        bootstrap = new ServerBootstrap();
+
+        bossGroup = new NioEventLoopGroup(1, new DefaultThreadFactory("NettyServerBoss", true));
+        workerGroup = new NioEventLoopGroup(getUrl().getPositiveParameter(IO_THREADS_KEY, Constants.DEFAULT_IO_THREADS),
+                new DefaultThreadFactory("NettyServerWorker", true));
+
+        final NettyServerHandler nettyServerHandler = new NettyServerHandler(getUrl(), this);
+        channels = nettyServerHandler.getChannels();
+
+        bootstrap.group(bossGroup, workerGroup)
+                .channel(NioServerSocketChannel.class)
+                .childOption(ChannelOption.TCP_NODELAY, Boolean.TRUE)
+                .childOption(ChannelOption.SO_REUSEADDR, Boolean.TRUE)
+                .childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
+                .childHandler(new ChannelInitializer<NioSocketChannel>() {
+                    @Override
+                    protected void initChannel(NioSocketChannel ch) throws Exception {
+                        // FIXME: should we use getTimeout()?
+                        int idleTimeout = UrlUtils.getIdleTimeout(getUrl());
+                        NettyCodecAdapter adapter = new NettyCodecAdapter(getCodec(), getUrl(), NettyServer.this);
+                        if (getUrl().getParameter(SSL_ENABLED_KEY, false)) {
+                            ch.pipeline().addLast("negotiation",
+                                    SslHandlerInitializer.sslServerHandler(getUrl(), nettyServerHandler));
+                        }
+                        ch.pipeline()
+                                .addLast("decoder", adapter.getDecoder())
+                                .addLast("encoder", adapter.getEncoder())
+                                .addLast("server-idle-handler", new IdleStateHandler(0, 0, idleTimeout, MILLISECONDS))
+                                .addLast("handler", nettyServerHandler);
+                    }
+                });
+        // bind
+        ChannelFuture channelFuture = bootstrap.bind(getBindAddress());
+        channelFuture.syncUninterruptibly();
+        channel = channelFuture.channel();
+
+    }
+```
+
+### 服务注册
+
+`org.apache.dubbo.registry.integration.RegistryProtocol#register`:注册服务
+
+```java
+public void register(URL registryUrl, URL registeredProviderUrl) {
+    //registryUrl 为zookeeper协议 由于zookeeper方法中并没有具体实现，所以只有去父类方法中查找
+    Registry registry = registryFactory.getRegistry(registryUrl);
+    //registeredProviderUrl dubbo协议
+    registry.register(registeredProviderUrl);
+
+    ProviderModel model = ApplicationModel.getProviderModel(registeredProviderUrl.getServiceKey());
+    model.addStatedUrl(new ProviderModel.RegisterStatedURL(
+        registeredProviderUrl,
+        registryUrl,
+        true
+    ));
+}
+```
+
+`org.apache.dubbo.registry.support.AbstractRegistryFactory#getRegistry(org.apache.dubbo.common.URL)`
+
+```java
+@Override
+public Registry getRegistry(URL url) {
+    url = URLBuilder.from(url)
+        .setPath(RegistryService.class.getName())
+        .addParameter(INTERFACE_KEY, RegistryService.class.getName())
+        .removeParameters(EXPORT_KEY, REFER_KEY)
+        .build();
+    String key = url.toServiceStringWithoutResolving();
+    // Lock the registry access process to ensure a single instance of the registry
+    LOCK.lock();
+    try {
+        Registry registry = REGISTRIES.get(key);
+        if (registry != null) {
+            return registry;
+        }
+        //创建一个 zookeeperRegistry注册中心
+        registry = createRegistry(url);
+        if (registry == null) {
+            throw new IllegalStateException("Can not create registry " + url);
+        }
+        REGISTRIES.put(key, registry);
+        return registry;
+    } finally {
+        // Release the lock
+        LOCK.unlock();
+    }
+}
+```
+
+`org.apache.dubbo.registry.support.FailbackRegistry#register`:在这个类里面进行服务注册
+
+> 这个方法会调用FailbackRegistry 类中的 register. 为什么呢？因为 ZookeeperRegistry 这个类中并没有 register 这个方法，但是 他的父类 FailbackRegistry 中存在 register 方法，而这个类又重写了 AbstractRegistry 类中的 register 方法。所以我们可以直接 定位大 FailbackRegistry 这个类中的 register 方法中
+
+```java
+public void register(URL url) {
+    ...
+    super.register(url);
+    removeFailedRegistered(url);
+    removeFailedUnregistered(url);
+    try {
+        // Sending a registration request to the server side
+        //具体的注册逻辑
+        doRegister(url);
+    } catch (Exception e) {
+        Throwable t = e;
+
+        // If the startup detection is opened, the Exception is thrown directly.
+        boolean check = getUrl().getParameter(Constants.CHECK_KEY, true)
+            && url.getParameter(Constants.CHECK_KEY, true)
+            && !CONSUMER_PROTOCOL.equals(url.getProtocol());
+        boolean skipFailback = t instanceof SkipFailbackWrapperException;
+        if (check || skipFailback) {
+            if (skipFailback) {
+                t = t.getCause();
+            }
+            throw new IllegalStateException("Failed to register " + url + " to registry " + getUrl().getAddress() + ", cause: " + t.getMessage(), t);
+        } else {
+            logger.error("Failed to register " + url + ", waiting for retry, cause: " + t.getMessage(), t);
+        }
+
+        // Record a failed registration request to a failed list, retry regularly
+        addFailedRegistered(url);
+    }
+}
+```
+
+`org.apache.dubbo.registry.zookeeper.ZookeeperRegistry#doRegister`:zookeeper操作客户端并存储数据
+
+```java
+public void doRegister(URL url) {
+    ...
+    //zookeeper创建节点操作
+    zkClient.create(toUrlPath(url), url.getParameter(DYNAMIC_KEY, true));
+
+}
+```
+
+
 
 
 
