@@ -1,4 +1,5 @@
-package com.fuzy.example.leetcode.editor.cn;//给定一个二叉树，判断它是否是高度平衡的二叉树。
+package com.fuzy.example.leetcode.editor.cn;
+//给定一个二叉树，判断它是否是高度平衡的二叉树。
 //
 // 本题中，一棵高度平衡二叉树定义为： 
 //
@@ -35,49 +36,34 @@ package com.fuzy.example.leetcode.editor.cn;//给定一个二叉树，判断它�
 //
 // 
 // Related Topics 树 深度优先搜索 
-// 👍 458 👎 0
+// 👍 461 👎 0
 
 
 //leetcode submit region begin(Prohibit modification and deletion)
+
 /**
  * Definition for a binary tree node.
  * public class TreeNode {
- *     int val;
- *     TreeNode left;
- *     TreeNode right;
- *     TreeNode(int x) { val = x; }
+ * int val;
+ * TreeNode left;
+ * TreeNode right;
+ * TreeNode(int x) { val = x; }
  * }
  */
-class Solution39 {
+class Solution41 {
     public boolean isBalanced(TreeNode root) {
-        TreeNode left = root.left;
-        TreeNode right = root.right;
 
-
-
-
-        return helper(left,right);
-    }
-
-    public boolean helper(TreeNode left,TreeNode right){
-        if((left!=null&&right==null)){
-            if(left.right!=null||left.left!=null){
-                return false;
-            }
-        }
-        if(right!=null&&left==null){
-            if(left.right!=null||left.left!=null){
-                return false;
-            }
-        }
-        helper(left,right);
         return true;
     }
-   public class TreeNode {
-      int val;
-      TreeNode left;
-      TreeNode right;
-      TreeNode(int x) { val = x; }
-  }
+
+    public class TreeNode {
+        int val;
+        TreeNode left;
+        TreeNode right;
+
+        TreeNode(int x) {
+            val = x;
+        }
+    }
 }
 //leetcode submit region end(Prohibit modification and deletion)
