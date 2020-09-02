@@ -39,13 +39,13 @@ class MyStack42 {
     
     /** Removes the element on top of the stack and returns that element. */
     public int pop() {
-        Integer remove = list.remove(0);
+        Integer remove = list.remove(list.size()-1);
         return remove;
     }
     
     /** Get the top element. */
     public int top() {
-        Integer integer = list.get(0);
+        Integer integer = list.get(list.size()-1);
         return integer;
     }
     
