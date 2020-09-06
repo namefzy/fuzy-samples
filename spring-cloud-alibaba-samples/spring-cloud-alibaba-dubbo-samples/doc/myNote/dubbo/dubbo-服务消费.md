@@ -168,9 +168,11 @@ public class DubboAutoConfiguration {
 - `ApplicationContextAware`:设置上下文对象
 - `ApplicationListener`：监听事件
 
+**`ReferenceAnnotationBeanPostProcessor`类：触发事件监听动作，初始化**
+
 ```java
 public class ReferenceAnnotationBeanPostProcessor extends AbstractAnnotationBeanPostProcessor implements
-        ApplicationContextAware, ApplicationListener {
+    ApplicationContextAware, ApplicationListener {
     //兼容老版本注解
     public ReferenceAnnotationBeanPostProcessor() {
         super(Reference.class, com.alibaba.dubbo.config.annotation.Reference.class);
@@ -187,6 +189,354 @@ public class ReferenceAnnotationBeanPostProcessor extends AbstractAnnotationBean
             onServiceBeanExportEvent((ServiceBeanExportedEvent) event);
         }
     }
+    
+    private void onServiceBeanExportEvent(ServiceBeanExportedEvent event) {
+        ServiceBean serviceBean = event.getServiceBean();
+        initReferenceBeanInvocationHandler(serviceBean);
+    }
+
+    private void initReferenceBeanInvocationHandler(ServiceBean serviceBean) {
+        String serviceBeanName = serviceBean.getBeanName();
+        ReferenceBeanInvocationHandler handler = localReferenceBeanInvocationHandlerCache.remove(serviceBeanName);
+        // 初始化
+        if (handler != null) {
+            handler.init();
+        }
+    }
+
+     @Override
+    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        Object result;
+        try {
+            if (bean == null) { // If the bean is not initialized, invoke init()
+                // issue: https://github.com/apache/dubbo/issues/3429
+                init();
+            }
+            result = method.invoke(bean, args);
+        } catch (InvocationTargetException e) {
+            // re-throws the actual Exception.
+            throw e.getTargetException();
+        }
+        return result;
+    }
+
+    private void init() {
+        //真正执行初始化的方法
+        this.bean = referenceBean.get();
+    }
+}
+}
+```
+
+**`ReferenceConfig`类：执行服务消费的逻辑**
+
+`org.apache.dubbo.config.ReferenceConfig#get`
+
+```java
+public synchronized T get() {
+    if (destroyed) {
+        throw new IllegalStateException("The invoker of ReferenceConfig(" + url + ") has already destroyed!");
+    }
+    if (ref == null) {
+        //
+        init();
+    }
+    return ref;
+}
+```
+
+`org.apache.dubbo.config.ReferenceConfig#init`
+
+```java
+public synchronized void init() {
+    if (initialized) {
+        return;
+    }
+
+    if (bootstrap == null) {
+        bootstrap = DubboBootstrap.getInstance();
+        bootstrap.init();
+    }
+
+    checkAndUpdateSubConfigs();
+
+    //init serivceMetadata
+    serviceMetadata.setVersion(version);
+    serviceMetadata.setGroup(group);
+    serviceMetadata.setDefaultGroup(group);
+    serviceMetadata.setServiceType(getActualInterface());
+    serviceMetadata.setServiceInterfaceName(interfaceName);
+    // TODO, uncomment this line once service key is unified
+    serviceMetadata.setServiceKey(URL.buildKey(interfaceName, group, version));
+
+    checkStubAndLocal(interfaceClass);
+    ConfigValidationUtils.checkMock(interfaceClass, this);
+
+    Map<String, String> map = new HashMap<String, String>();
+    map.put(SIDE_KEY, CONSUMER_SIDE);
+
+    ReferenceConfigBase.appendRuntimeParameters(map);
+    if (!ProtocolUtils.isGeneric(generic)) {
+        String revision = Version.getVersion(interfaceClass, version);
+        if (revision != null && revision.length() > 0) {
+            map.put(REVISION_KEY, revision);
+        }
+
+        String[] methods = Wrapper.getWrapper(interfaceClass).getMethodNames();
+        if (methods.length == 0) {
+            logger.warn("No method found in service interface " + interfaceClass.getName());
+            map.put(METHODS_KEY, ANY_VALUE);
+        } else {
+            map.put(METHODS_KEY, StringUtils.join(new HashSet<String>(Arrays.asList(methods)), COMMA_SEPARATOR));
+        }
+    }
+    map.put(INTERFACE_KEY, interfaceName);
+    AbstractConfig.appendParameters(map, getMetrics());
+    AbstractConfig.appendParameters(map, getApplication());
+    AbstractConfig.appendParameters(map, getModule());
+    // remove 'default.' prefix for configs from ConsumerConfig
+    // appendParameters(map, consumer, Constants.DEFAULT_KEY);
+    AbstractConfig.appendParameters(map, consumer);
+    AbstractConfig.appendParameters(map, this);
+    Map<String, Object> attributes = null;
+    if (CollectionUtils.isNotEmpty(getMethods())) {
+        attributes = new HashMap<>();
+        for (MethodConfig methodConfig : getMethods()) {
+            AbstractConfig.appendParameters(map, methodConfig, methodConfig.getName());
+            String retryKey = methodConfig.getName() + ".retry";
+            if (map.containsKey(retryKey)) {
+                String retryValue = map.remove(retryKey);
+                if ("false".equals(retryValue)) {
+                    map.put(methodConfig.getName() + ".retries", "0");
+                }
+            }
+            ConsumerModel.AsyncMethodInfo asyncMethodInfo = AbstractConfig.convertMethodConfig2AsyncInfo(methodConfig);
+            if (asyncMethodInfo != null) {
+                //                    consumerModel.getMethodModel(methodConfig.getName()).addAttribute(ASYNC_KEY, asyncMethodInfo);
+                attributes.put(methodConfig.getName(), asyncMethodInfo);
+            }
+        }
+    }
+
+    String hostToRegistry = ConfigUtils.getSystemProperty(DUBBO_IP_TO_REGISTRY);
+    if (StringUtils.isEmpty(hostToRegistry)) {
+        hostToRegistry = NetUtils.getLocalHost();
+    } else if (isInvalidLocalHost(hostToRegistry)) {
+        throw new IllegalArgumentException("Specified invalid registry ip from property:" + DUBBO_IP_TO_REGISTRY + ", value:" + hostToRegistry);
+    }
+    map.put(REGISTER_IP_KEY, hostToRegistry);
+
+    serviceMetadata.getAttachments().putAll(map);
+
+    ServiceRepository repository = ApplicationModel.getServiceRepository();
+    ServiceDescriptor serviceDescriptor = repository.registerService(interfaceClass);
+    repository.registerConsumer(
+        serviceMetadata.getServiceKey(),
+        attributes,
+        serviceDescriptor,
+        this,
+        null,
+        serviceMetadata);
+    //创建代理对象
+	//{init=false, side=consumer, application=dubbo-consumer, register.ip=192.168.199.203, release=2.7.5, methods=getOrderByOrderCode, sticky=false, dubbo=2.0.2, pid=1580, interface=com.fuzy.example.service.OrderService, qos.enable=false, timestamp=1599058877524}
+    ref = createProxy(map);
+
+    serviceMetadata.setTarget(ref);
+    serviceMetadata.addAttribute(PROXY_CLASS_REF, ref);
+    repository.lookupReferredService(serviceMetadata.getServiceKey()).setProxyObject(ref);
+
+    initialized = true;
+
+    // dispatch a ReferenceConfigInitializedEvent since 2.7.4
+    dispatch(new ReferenceConfigInitializedEvent(this, invoker));
+}
+```
+
+`org.apache.dubbo.config.ReferenceConfig#createProxy`
+
+```java
+private T createProxy(Map<String, String> map) {
+    if (shouldJvmRefer(map)) {//本地调用
+        URL url = new URL(LOCAL_PROTOCOL, LOCALHOST_VALUE, 0, interfaceClass.getName()).addParameters(map);
+        invoker = REF_PROTOCOL.refer(interfaceClass, url);
+        if (logger.isInfoEnabled()) {
+            logger.info("Using injvm service " + interfaceClass.getName());
+        }
+    } else {
+        urls.clear();
+        if (url != null && url.length() > 0) { // user specified URL, could be peer-to-peer address, or register center's address.
+            String[] us = SEMICOLON_SPLIT_PATTERN.split(url);
+            if (us != null && us.length > 0) {
+                for (String u : us) {
+                    URL url = URL.valueOf(u);
+                    if (StringUtils.isEmpty(url.getPath())) {
+                        url = url.setPath(interfaceName);
+                    }
+                    if (UrlUtils.isRegistry(url)) {
+                        urls.add(url.addParameterAndEncoded(REFER_KEY, StringUtils.toQueryString(map)));
+                    } else {
+                        urls.add(ClusterUtils.mergeUrl(url, map));
+                    }
+                }
+            }
+        } else {//远程调用
+            //registry://192.168.56.101:2181/org.apache.dubbo.registry.RegistryService?application=dubbo-consumer&dubbo=2.0.2&pid=1580&qos.enable=false&registry=zookeeper&release=2.7.5&timeout=10000&timestamp=1599059110313
+            if (!LOCAL_PROTOCOL.equalsIgnoreCase(getProtocol())) {
+                checkRegistry();
+                List<URL> us = ConfigValidationUtils.loadRegistries(this, false);
+                if (CollectionUtils.isNotEmpty(us)) {
+                    for (URL u : us) {
+                        URL monitorUrl = ConfigValidationUtils.loadMonitor(this, u);
+                        if (monitorUrl != null) {
+                            map.put(MONITOR_KEY, URL.encode(monitorUrl.toFullString()));
+                        }
+                        //对url进行编码
+                        urls.add(u.addParameterAndEncoded(REFER_KEY, StringUtils.toQueryString(map)));
+                    }
+                }
+                if (urls.isEmpty()) {
+                    throw new IllegalStateException("No such any registry to reference " + interfaceName + " on the consumer " + NetUtils.getLocalHost() + " use dubbo version " + Version.getVersion() + ", please config <dubbo:registry address=\"...\" /> to your spring config.");
+                }
+            }
+        }
+
+        if (urls.size() == 1) {
+            //interfaceClass=com.fuzy.example.service.OrderService
+            //url为registry
+            //先生成代理类，在调用根据url调用RegistryProtocol方法
+            invoker = REF_PROTOCOL.refer(interfaceClass, urls.get(0));
+        } else {
+            List<Invoker<?>> invokers = new ArrayList<Invoker<?>>();
+            URL registryURL = null;
+            for (URL url : urls) {
+                invokers.add(REF_PROTOCOL.refer(interfaceClass, url));
+                if (UrlUtils.isRegistry(url)) {
+                    registryURL = url; // use last registry url
+                }
+            }
+            if (registryURL != null) { // registry url is available
+                // for multi-subscription scenario, use 'zone-aware' policy by default
+                URL u = registryURL.addParameterIfAbsent(CLUSTER_KEY, ZoneAwareCluster.NAME);
+                // The invoker wrap relation would be like: ZoneAwareClusterInvoker(StaticDirectory) -> FailoverClusterInvoker(RegistryDirectory, routing happens here) -> Invoker
+                invoker = CLUSTER.join(new StaticDirectory(u, invokers));
+            } else { // not a registry url, must be direct invoke.
+                invoker = CLUSTER.join(new StaticDirectory(invokers));
+            }
+        }
+    }
+
+    if (shouldCheck() && !invoker.isAvailable()) {
+        throw new IllegalStateException("Failed to check the status of the service "
+                                        + interfaceName
+                                        + ". No provider available for the service "
+                                        + (group == null ? "" : group + "/")
+                                        + interfaceName +
+                                        (version == null ? "" : ":" + version)
+                                        + " from the url "
+                                        + invoker.getUrl()
+                                        + " to the consumer "
+                                        + NetUtils.getLocalHost() + " use dubbo version " + Version.getVersion());
+    }
+    if (logger.isInfoEnabled()) {
+        logger.info("Refer dubbo service " + interfaceClass.getName() + " from url " + invoker.getUrl());
+    }
+
+    String metadata = map.get(METADATA_KEY);
+    WritableMetadataService metadataService = WritableMetadataService.getExtension(metadata == null ? DEFAULT_METADATA_STORAGE_TYPE : metadata);
+    if (metadataService != null) {
+        URL consumerURL = new URL(CONSUMER_PROTOCOL, map.remove(REGISTER_IP_KEY), 0, map.get(INTERFACE_KEY), map);
+        metadataService.publishServiceDefinition(consumerURL);
+    }
+    // create service proxy
+    return (T) PROXY_FACTORY.getProxy(invoker);
+}
+```
+
+`org.apache.dubbo.registry.integration.RegistryProtocol#refer`
+
+```java
+public <T> Invoker<T> refer(Class<T> type, URL url) throws RpcException {
+    //url从registry变成zookeeper
+    url = getRegistryUrl(url);
+    //registryFactory 根据spi原理调用zookeeper相关的实现类，但是没有具体实现，只有从父类AbstractRegistryFactory找到实现
+    Registry registry = registryFactory.getRegistry(url);
+    if (RegistryService.class.equals(type)) {
+        return proxyFactory.getInvoker((T) registry, type, url);
+    }
+
+    // group="a,b" or group="*"
+    Map<String, String> qs = StringUtils.parseQueryString(url.getParameterAndDecoded(REFER_KEY));
+    String group = qs.get(GROUP_KEY);
+    if (group != null && group.length() > 0) {
+        if ((COMMA_SPLIT_PATTERN.split(group)).length > 1 || "*".equals(group)) {
+            return doRefer(getMergeableCluster(), registry, type, url);
+        }
+    }
+    return doRefer(cluster, registry, type, url);
+}
+```
+
+`org.apache.dubbo.registry.support.AbstractRegistryFactory#getRegistry(org.apache.dubbo.common.URL)`
+
+```java
+public Registry getRegistry(URL url) {
+    if (destroyed.get()) {
+        LOGGER.warn("All registry instances have been destroyed, failed to fetch any instance. " +
+                    "Usually, this means no need to try to do unnecessary redundant resource clearance, all registries has been taken care of.");
+        return DEFAULT_NOP_REGISTRY;
+    }
+
+    url = URLBuilder.from(url)
+        .setPath(RegistryService.class.getName())
+        .addParameter(INTERFACE_KEY, RegistryService.class.getName())
+        .removeParameters(EXPORT_KEY, REFER_KEY)
+        .build();
+    String key = url.toServiceStringWithoutResolving();
+    // Lock the registry access process to ensure a single instance of the registry
+    LOCK.lock();
+    try {
+        Registry registry = REGISTRIES.get(key);
+        if (registry != null) {
+            return registry;
+        }
+        //create registry by spi/ioc
+        registry = createRegistry(url);
+        if (registry == null) {
+            throw new IllegalStateException("Can not create registry " + url);
+        }
+        REGISTRIES.put(key, registry);
+        //registr={zookeeper://192.168.56.101:2181/org.apache.dubbo.registry.RegistryService?application=dubbo-consumer&dubbo=2.0.2&interface=org.apache.dubbo.registry.RegistryService&pid=1580&qos.enable=false&release=2.7.5&timeout=10000&timestamp=1599059110313}
+        return registry;
+    } finally {
+        // Release the lock
+        LOCK.unlock();
+    }
+}
+
+```
+
+获取registry对象后，最后又执行doRefer方法；
+
+`org.apache.dubbo.registry.integration.RegistryProtocol#doRefer`
+
+```java
+private <T> Invoker<T> doRefer(Cluster cluster, Registry registry, Class<T> type, URL url) {
+    RegistryDirectory<T> directory = new RegistryDirectory<T>(type, url);
+    directory.setRegistry(registry);
+    directory.setProtocol(protocol);
+    // all attributes of REFER_KEY
+    Map<String, String> parameters = new HashMap<String, String>(directory.getUrl().getParameters());
+    URL subscribeUrl = new URL(CONSUMER_PROTOCOL, parameters.remove(REGISTER_IP_KEY), 0, type.getName(), parameters);
+    if (!ANY_VALUE.equals(url.getServiceInterface()) && url.getParameter(REGISTER_KEY, true)) {
+        directory.setRegisteredConsumerUrl(getRegisteredConsumerUrl(subscribeUrl, url));
+        registry.register(directory.getRegisteredConsumerUrl());
+    }
+    directory.buildRouterChain(subscribeUrl);
+    directory.subscribe(subscribeUrl.addParameter(CATEGORY_KEY,
+                                                  PROVIDERS_CATEGORY + "," + CONFIGURATORS_CATEGORY + "," + ROUTERS_CATEGORY));
+
+    Invoker invoker = cluster.join(directory);
+    return invoker;
 }
 ```
 
