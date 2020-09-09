@@ -82,4 +82,5 @@ class Solution41 {
         }
     }
 }
-//leetcode submit region end(Prohibit modification and deletion)
+//leetcode submit region end(Prohibit modification a
+//nd deletion)
