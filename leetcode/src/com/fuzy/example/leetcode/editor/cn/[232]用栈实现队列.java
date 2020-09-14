@@ -50,29 +50,29 @@ class MyQueue50 {
 
     /** Push element x to the back of queue. */
     public void push(int x) {
-        stack.push(x);
-    }
-//    ["MyQueue","push","push","peek","push","peek"]
-//            [[],[1],[2],[],[3],[]]
-    /** Removes the element from in front of queue and returns that element. */
-    public void switchStack(){
+        if (stack.empty())
+            front = x;
+        while (!stack.isEmpty())
+            copyStack.push(stack.pop());
+        copyStack.push(x);
+        while (!copyStack.isEmpty())
+            stack.push(copyStack.pop());
 
     }
+
 
     public int pop() {
-        switchStack();
-        return copyStack.pop();
+        return stack.pop();
     }
 
     /** Get the front element. */
     public int peek() {
-
-        return copyStack.peek();
+        return stack.peek();
     }
 
     /** Returns whether the queue is empty. */
     public boolean empty() {
-        return stack.isEmpty()&&copyStack.isEmpty();
+        return stack.isEmpty();
     }
 }
 
