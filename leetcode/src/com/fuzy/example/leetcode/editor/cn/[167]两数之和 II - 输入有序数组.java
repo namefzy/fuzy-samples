@@ -25,14 +25,19 @@ class Solution57 {
         for (int i = 0; i < numbers.length; i++) {
             int lower = i+1;
             int max = numbers.length-1;
-            int middle = (lower+max)/2;
-            while (lower<max){
-                if(numbers[middle]==target-numbers[i]){
 
+            while (lower<=max){
+                int middle = lower+(max-lower)/2;
+                if(numbers[middle]==target-numbers[i]){
+                    return new int[]{i+1,middle+1};
+                }else if(numbers[middle]<target-numbers[i]){
+                    lower = middle+1;
+                }else{
+                    max=middle-1;
                 }
             }
         }
-        return null;
+        return new int[]{-1, -1};
     }
 }
 //leetcode submit region end(Prohibit modification and deletion)
