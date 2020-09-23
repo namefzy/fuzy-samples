@@ -69,7 +69,6 @@ class Solution17 {
                 n -=1;
             }
             sb.insert(0,map.get(i));
-            //如果z,zz,zzz,zzzz....怎么解决 第一位是z,但是这里的结果却是a
             n = n/26;
 
         }
