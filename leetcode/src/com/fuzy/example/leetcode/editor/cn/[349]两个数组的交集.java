@@ -34,18 +34,33 @@ import java.util.Map;
 //leetcode submit region begin(Prohibit modification and deletion)
 class Solution64 {
     public int[] intersection(int[] nums1, int[] nums2) {
-        Arrays.sort(nums1);
-        Arrays.sort(nums2);
-
-        return null;
+        HashSet<Integer> set1 = new HashSet<>();
+        for (int i : nums1) {
+            set1.add(i);
+        }
+        HashSet<Integer> set2 = new HashSet<>();
+        for (int i : nums2) {
+            set2.add(i);
+        }
+        set1.retainAll(set2);
+        int[] arrays = new int[set1.size()];
+        int index = 0;
+        for (Integer integer : set1) {
+            arrays[index++] = integer;
+        }
+        return arrays;
     }
 
     public static void main(String[] args) {
-        int[] nums1 = new int[10];
-        nums1[0]=1;
-        for (int i : nums1) {
-            System.out.println(i);
-        }
+        int j=0;
+        int n = j++;
+        System.out.println(n);
+        System.out.println(++j);
+        System.out.println(j);
+        int i=0;
+        System.out.println(++i);
+        System.out.println(i++);
+        System.out.println(i);
 
     }
 }

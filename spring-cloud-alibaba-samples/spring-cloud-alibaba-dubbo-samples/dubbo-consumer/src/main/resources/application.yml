@@ -7,5 +7,5 @@ dubbo:
   config-center:
     timeout: 10000
   registry:
-    address: zookeeper://192.168.56.101:2181
+    address: zookeeper://192.168.56.102:2181
     timeout: 10000

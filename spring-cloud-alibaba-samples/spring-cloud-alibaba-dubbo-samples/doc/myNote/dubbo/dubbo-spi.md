@@ -64,7 +64,7 @@ public class ProtocolBootstrap {
 
 ![dubbo获取加载器](https://image-1301573777.cos.ap-chengdu.myqcloud.com/20200730223517.jpg)
 
-### 3`源码解析`
+### 3`源码解析-getExtensionLoader`
 
 `org.apache.dubbo.common.extension.ExtensionLoader#getExtensionLoader`:获取类加载器
 
@@ -73,6 +73,7 @@ public static <T> ExtensionLoader<T> getExtensionLoader(Class<T> type) {
     ...
     ExtensionLoader<T> loader = (ExtensionLoader<T>) EXTENSION_LOADERS.get(type);
     if (loader == null) {
+ 		//new 实例化对象
         EXTENSION_LOADERS.putIfAbsent(type, new ExtensionLoader<T>(type));
         loader = (ExtensionLoader<T>) EXTENSION_LOADERS.get(type);
     }
@@ -80,13 +81,13 @@ public static <T> ExtensionLoader<T> getExtensionLoader(Class<T> type) {
 }
 ```
 
-`org.apache.dubbo.common.extension.ExtensionLoader#ExtensionLoader`:实例化
+`org.apache.dubbo.common.extension.ExtensionLoader#ExtensionLoader`:初始化`ExtensionLoader`实例化
 
 ```java
 //以MyProtocol为例，此时type=Protocol.class，objectFactory=AdaptiveExtensionFactory
 private ExtensionLoader(Class<?> type) {
     this.type = type;
-    //type!=ExtensionFactory.class，此时ExtensionFactory objectFactory=AdaptiveExtensionFactory
+    //ExtensionLoader.getExtensionLoader(ExtensionFactory.class).getAdaptiveExtension()初始化ExtensionFactory
     objectFactory = (type == ExtensionFactory.class ? null : ExtensionLoader.getExtensionLoader(ExtensionFactory.class).getAdaptiveExtension());
 }
 ```
@@ -114,7 +115,7 @@ public T getAdaptiveExtension() {
     }
 ```
 
-`org.apache.dubbo.common.extension.ExtensionLoader#createAdaptiveExtension`：反射实例化并注入依赖
+`org.apache.dubbo.common.extension.ExtensionLoader#createAdaptiveExtension`：反射实例化并依赖注入
 
 ```java
 /**
@@ -130,16 +131,16 @@ private T createAdaptiveExtension() {
 }
 ```
 
-`org.apache.dubbo.common.extension.ExtensionLoader#getAdaptiveExtensionClass`
+`org.apache.dubbo.common.extension.ExtensionLoader#getAdaptiveExtensionClass`：获取自适应扩展类
 
 ```java
 private Class<?> getAdaptiveExtensionClass() {
     getExtensionClasses();
-    //private volatile Class<?> cachedAdaptiveClass = AdaptiveExtensionFactory.class
     if (cachedAdaptiveClass != null) {
+        //返回的是带有@Adapative注解的类
         return cachedAdaptiveClass;
     }
-    //当扫描的文件所有类上不带有@Adapative注解时，会执行此方法生成代理类代码。在本例中不会执行
+    //当扫描的文件所有类上不带有@Adapative注解时，会执行此方法生成代理类代码。后续介绍
     return cachedAdaptiveClass = createAdaptiveExtensionClass();
 }
 ```
@@ -310,6 +311,7 @@ public class AdaptiveExtensionFactory implements ExtensionFactory {
         ExtensionLoader<ExtensionFactory> loader = ExtensionLoader.getExtensionLoader(ExtensionFactory.class);
         List<ExtensionFactory> list = new ArrayList<ExtensionFactory>();
         for (String name : loader.getSupportedExtensions()) {
+            //分别会调用SpiExtensionLoader 和SpringExtensionLoader
             list.add(loader.getExtension(name));
         }
         //初始化factories ={SpringExtensionFactory，SpiExtensionFactory}
@@ -330,7 +332,31 @@ public class AdaptiveExtensionFactory implements ExtensionFactory {
 }
 ```
 
-`Protocol myProtocol = extensionLoader.getExtension("myProtocol");`执行流程：
+> 小结：在获取**指定名称的扩展点**过程中，通过`getExtensionLoader()`整个调用流程初始化`ExtensionLoader`对象中`objectFactory`属性。在初始化过程中主要做了以下事情：
+>
+> - `cachedAdaptiveClass`存储`@Adaptive`注解的类  例如：`AdaptiveExtensionFactory`
+> - `cachedWrapperClasses`存储构造方法带有扩展点参数的包装类  例如：`ProtocolFilterWrapper、ProtocolListenerWrapper`
+> - `cachedActivates`存储带有`@Activate`注解的类
+> - `cachedClasses`存储实现了扩展点的类  例如：`SpiExtensionFactory、SpringExtensionFactory`
+
+`Protocol myProtocol = extensionLoader.getExtension("myProtocol")`执行流程：
+
+### 4  案例
+
+**以下案例均来源于`dubbo`源码中`common`模块中的`ExtensionLoader_Adaptive_Test`类中**
+
+#### 4.1  指定名称的扩展点
+
+```java
+@Test
+public void test_staticAdaptiveClass()throws Exception{
+    //与Quick Start中逻辑一样
+    HasAdaptiveExt impl1 = ExtensionLoader.getExtensionLoader(HasAdaptiveExt.class).getExtension("impl1");
+    assertTrue(impl1 instanceof HasAdaptiveExtImpl1);
+}
+```
+
+**源码分析**
 
 `org.apache.dubbo.common.extension.ExtensionLoader#getExtension`
 
@@ -343,6 +369,7 @@ public T getExtension(String name) {
             synchronized (holder) {
                 instance = holder.get();
                 if (instance == null) {
+                    //根据指定名称获取对应的实体类
                     instance = createExtension(name);
                     holder.set(instance);
                 }
@@ -393,21 +420,6 @@ private T createExtension(String name) {
 }
 ```
 
-### 4  案例
-
-**以下案例均来源于`dubbo`源码中`common`模块中的`ExtensionLoader_Adaptive_Test`类中**
-
-#### 4.1  指定名称的扩展点
-
-```java
-@Test
-public void test_staticAdaptiveClass()throws Exception{
-    //与Quick Start中逻辑一样
-    HasAdaptiveExt impl1 = ExtensionLoader.getExtensionLoader(HasAdaptiveExt.class).getExtension("impl1");
-    assertTrue(impl1 instanceof HasAdaptiveExtImpl1);
-}
-```
-
 #### 4.2 自适应扩展点
 
 ##### 4.2.1、类上加@Adaptive注解
@@ -423,6 +435,35 @@ public void test_useAdaptiveClass() throws Exception {
     ExtensionLoader<HasAdaptiveExt> loader = ExtensionLoader.getExtensionLoader(HasAdaptiveExt.class);
     HasAdaptiveExt ext = loader.getAdaptiveExtension();
     assertTrue(ext instanceof HasAdaptiveExt_ManualAdaptive);
+}
+```
+
+**源码解析**
+
+```java
+public T getAdaptiveExtension() {
+    Object instance = cachedAdaptiveInstance.get();
+    if (instance == null) {
+        if (createAdaptiveInstanceError == null) {
+            synchronized (cachedAdaptiveInstance) {
+                instance = cachedAdaptiveInstance.get();
+                if (instance == null) {
+                    try {
+                        //创建自适应 加载带有@Adaptive的类
+                        instance = createAdaptiveExtension();
+                        cachedAdaptiveInstance.set(instance);
+                    } catch (Throwable t) {
+                        createAdaptiveInstanceError = t;
+                        throw new IllegalStateException("Failed to create adaptive instance: " + t.toString(), t);
+                    }
+                }
+            }
+        } else {
+            throw new IllegalStateException("Failed to create adaptive instance: " + createAdaptiveInstanceError.toString(), createAdaptiveInstanceError);
+        }
+    }
+
+    return (T) instance;
 }
 ```
 
@@ -500,6 +541,25 @@ public class SimpleExt$Adaptive implements org.apache.dubbo.common.extension.ext
 }
 ```
 
+**源码解析**
+
+​	**当扫描的带有注解`@Spi`的接口实现类没有`@Adaptive`注解时，会通过`createAdaptiveExtensionClass`此方法生成代理类。**
+
+`org.apache.dubbo.common.extension.ExtensionLoader#createAdaptiveExtensionClass`:动态生成代理类
+
+```java	
+private Class<?> createAdaptiveExtensionClass() {
+    //生成动态代理类代码
+    String code = new AdaptiveClassCodeGenerator(type, cachedDefaultName).generate();
+    //获取类加载器
+    ClassLoader classLoader = findClassLoader();
+    //默认javassist编译
+    org.apache.dubbo.common.compiler.Compiler compiler = ExtensionLoader.getExtensionLoader(org.apache.dubbo.common.compiler.Compiler.class).getAdaptiveExtension();
+    //编译
+    return compiler.compile(code, classLoader);
+}
+```
+
 #### 4.3  激活扩展点
 
 ​	自动激活扩展点，有点类似我们讲`springboot`的时候用到的`conditional`，根据条件进行自动激活。但是这里设计的初衷是，对 于一个类会加载多个扩展点的实现，这个时候可以通过自动激活扩展点进行动态加载。以下代码来自于`dubbo`源码中的`common`模块下的`ExtensionLoaderTest`类中
@@ -546,6 +606,67 @@ public void testLoadActivateExtension() throws Exception {
     Assertions.assertEquals(2, list.size());
     Assertions.assertSame(list.get(0).getClass(), OrderActivateExtImpl1.class);
     Assertions.assertSame(list.get(1).getClass(), OrderActivateExtImpl2.class);
+}
+```
+
+**源码分析**
+
+`org.apache.dubbo.common.extension.ExtensionLoader#getActivateExtension`
+
+```java
+public List<T> getActivateExtension(URL url, String[] values, String group) {
+    List<T> exts = new ArrayList<>();
+    List<String> names = values == null ? new ArrayList<>(0) : Arrays.asList(values);
+    if (!names.contains(REMOVE_VALUE_PREFIX + DEFAULT_KEY)) {
+        getExtensionClasses();
+        for (Map.Entry<String, Object> entry : cachedActivates.entrySet()) {
+            String name = entry.getKey();
+            Object activate = entry.getValue();
+
+            String[] activateGroup, activateValue;
+
+            if (activate instanceof Activate) {
+                activateGroup = ((Activate) activate).group();
+                activateValue = ((Activate) activate).value();
+            } else if (activate instanceof com.alibaba.dubbo.common.extension.Activate) {
+                activateGroup = ((com.alibaba.dubbo.common.extension.Activate) activate).group();
+                activateValue = ((com.alibaba.dubbo.common.extension.Activate) activate).value();
+            } else {
+                continue;
+            }
+            if (isMatchGroup(group, activateGroup)) {
+                T ext = getExtension(name);
+                if (!names.contains(name)
+                    && !names.contains(REMOVE_VALUE_PREFIX + name)
+                    && isActive(activateValue, url)) {
+                    //将激活扩展点加入的集合里面
+                    exts.add(ext);
+                }
+            }
+        }
+        //排序
+        exts.sort(ActivateComparator.COMPARATOR);
+    }
+    List<T> usrs = new ArrayList<>();
+    for (int i = 0; i < names.size(); i++) {
+        String name = names.get(i);
+        if (!name.startsWith(REMOVE_VALUE_PREFIX)
+            && !names.contains(REMOVE_VALUE_PREFIX + name)) {
+            if (DEFAULT_KEY.equals(name)) {
+                if (!usrs.isEmpty()) {
+                    exts.addAll(0, usrs);
+                    usrs.clear();
+                }
+            } else {
+                T ext = getExtension(name);
+                usrs.add(ext);
+            }
+        }
+    }
+    if (!usrs.isEmpty()) {
+        exts.addAll(usrs);
+    }
+    return exts;
 }
 ```
 

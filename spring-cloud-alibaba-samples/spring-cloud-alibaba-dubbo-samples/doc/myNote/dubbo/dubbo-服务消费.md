@@ -245,6 +245,8 @@ public synchronized T get() {
 }
 ```
 
+### 处理配置
+
 `org.apache.dubbo.config.ReferenceConfig#init`
 
 ```java
@@ -312,7 +314,6 @@ public synchronized void init() {
             }
             ConsumerModel.AsyncMethodInfo asyncMethodInfo = AbstractConfig.convertMethodConfig2AsyncInfo(methodConfig);
             if (asyncMethodInfo != null) {
-                //                    consumerModel.getMethodModel(methodConfig.getName()).addAttribute(ASYNC_KEY, asyncMethodInfo);
                 attributes.put(methodConfig.getName(), asyncMethodInfo);
             }
         }
@@ -338,7 +339,7 @@ public synchronized void init() {
         null,
         serviceMetadata);
     //创建代理对象
-	//{init=false, side=consumer, application=dubbo-consumer, register.ip=192.168.199.203, release=2.7.5, methods=getOrderByOrderCode, sticky=false, dubbo=2.0.2, pid=1580, interface=com.fuzy.example.service.OrderService, qos.enable=false, timestamp=1599058877524}
+	//map={init=false, side=consumer, application=dubbo-consumer, register.ip=192.168.199.203, release=2.7.5, methods=getOrderByOrderCode, sticky=false, dubbo=2.0.2, pid=1580, interface=com.fuzy.example.service.OrderService, qos.enable=false, timestamp=1599058877524}
     ref = createProxy(map);
 
     serviceMetadata.setTarget(ref);
@@ -352,7 +353,9 @@ public synchronized void init() {
 }
 ```
 
-`org.apache.dubbo.config.ReferenceConfig#createProxy`
+### 服务引用
+
+`org.apache.dubbo.config.ReferenceConfig#createProxy`：创建代理对象
 
 ```java
 private T createProxy(Map<String, String> map) {
@@ -403,9 +406,9 @@ private T createProxy(Map<String, String> map) {
         if (urls.size() == 1) {
             //interfaceClass=com.fuzy.example.service.OrderService
             //url为registry
-            //先生成代理类，在调用根据url调用RegistryProtocol方法
+            //先生成代理类，在调用根据url调用RegistryProtocol方法，调用 RegistryProtocol 的 refer 构建 Invoker 实例
             invoker = REF_PROTOCOL.refer(interfaceClass, urls.get(0));
-        } else {
+        } else {// 多个注册中心或多个服务提供者，或者两者混合
             List<Invoker<?>> invokers = new ArrayList<Invoker<?>>();
             URL registryURL = null;
             for (URL url : urls) {
@@ -415,11 +418,12 @@ private T createProxy(Map<String, String> map) {
                 }
             }
             if (registryURL != null) { // registry url is available
-                // for multi-subscription scenario, use 'zone-aware' policy by default
+                // 如果注册中心链接不为空，则将使用 AvailableCluster
                 URL u = registryURL.addParameterIfAbsent(CLUSTER_KEY, ZoneAwareCluster.NAME);
                 // The invoker wrap relation would be like: ZoneAwareClusterInvoker(StaticDirectory) -> FailoverClusterInvoker(RegistryDirectory, routing happens here) -> Invoker
                 invoker = CLUSTER.join(new StaticDirectory(u, invokers));
-            } else { // not a registry url, must be direct invoke.
+            } else {
+                // 创建 StaticDirectory 实例，并由 Cluster 对多个 Invoker 进行合并
                 invoker = CLUSTER.join(new StaticDirectory(invokers));
             }
         }
@@ -447,12 +451,12 @@ private T createProxy(Map<String, String> map) {
         URL consumerURL = new URL(CONSUMER_PROTOCOL, map.remove(REGISTER_IP_KEY), 0, map.get(INTERFACE_KEY), map);
         metadataService.publishServiceDefinition(consumerURL);
     }
-    // create service proxy
+    // 创建代理
     return (T) PROXY_FACTORY.getProxy(invoker);
 }
 ```
 
-`org.apache.dubbo.registry.integration.RegistryProtocol#refer`
+`org.apache.dubbo.registry.integration.RegistryProtocol#refer`：创建Invoker
 
 ```java
 public <T> Invoker<T> refer(Class<T> type, URL url) throws RpcException {
@@ -527,16 +531,59 @@ private <T> Invoker<T> doRefer(Cluster cluster, Registry registry, Class<T> type
     // all attributes of REFER_KEY
     Map<String, String> parameters = new HashMap<String, String>(directory.getUrl().getParameters());
     URL subscribeUrl = new URL(CONSUMER_PROTOCOL, parameters.remove(REGISTER_IP_KEY), 0, type.getName(), parameters);
+    // 注册服务消费者，在 consumers 目录下新节点
     if (!ANY_VALUE.equals(url.getServiceInterface()) && url.getParameter(REGISTER_KEY, true)) {
         directory.setRegisteredConsumerUrl(getRegisteredConsumerUrl(subscribeUrl, url));
         registry.register(directory.getRegisteredConsumerUrl());
     }
     directory.buildRouterChain(subscribeUrl);
+     // 订阅 providers、configurators、routers 等节点数据
     directory.subscribe(subscribeUrl.addParameter(CATEGORY_KEY,
                                                   PROVIDERS_CATEGORY + "," + CONFIGURATORS_CATEGORY + "," + ROUTERS_CATEGORY));
-
+	// 一个注册中心可能有多个服务提供者，因此这里需要将多个服务提供者合并为一个
     Invoker invoker = cluster.join(directory);
     return invoker;
+}
+```
+
+> ​	如上，doRefer 方法创建一个 RegistryDirectory 实例，然后生成服务者消费者链接，并向注册中心进行注册。注册完毕后，紧接着订阅 providers、configurators、routers 等节点下的数据。完成订阅后，RegistryDirectory 会收到这几个节点下的子节点信息。由于一个服务可能部署在多台服务器上，这样就会在 providers 产生多个节点，这个时候就需要 Cluster 将多个服务节点合并为一个，并生成一个 Invoker。
+
+`org.apache.dubbo.rpc.proxy.AbstractProxyFactory#getProxy(org.apache.dubbo.rpc.Invoker<T>)`:创建代理
+
+```java
+@Override
+public <T> T getProxy(Invoker<T> invoker, boolean generic) throws RpcException {
+    Set<Class<?>> interfaces = new HashSet<>();
+
+    String config = invoker.getUrl().getParameter(INTERFACES);
+    if (config != null && config.length() > 0) {
+        String[] types = COMMA_SPLIT_PATTERN.split(config);
+        if (types != null && types.length > 0) {
+            for (int i = 0; i < types.length; i++) {
+                // TODO can we load successfully for a different classloader?.
+                interfaces.add(ReflectUtils.forName(types[i]));
+            }
+        }
+    }
+
+    if (!GenericService.class.isAssignableFrom(invoker.getInterface()) && generic) {
+        interfaces.add(com.alibaba.dubbo.rpc.service.GenericService.class);
+    }
+
+    interfaces.add(invoker.getInterface());
+    interfaces.addAll(Arrays.asList(INTERNAL_INTERFACES));
+
+    return getProxy(invoker, interfaces.toArray(new Class<?>[0]));
+}
+
+```
+
+`org.apache.dubbo.rpc.proxy.javassist.JavassistProxyFactory#getProxy`
+
+```java
+@Override
+public <T> T getProxy(Invoker<T> invoker, Class<?>[] interfaces) {
+    return (T) Proxy.getProxy(interfaces).newInstance(new InvokerInvocationHandler(invoker));
 }
 ```
 

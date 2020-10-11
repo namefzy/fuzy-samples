@@ -1,4 +1,4 @@
-# SpringBoot源码解析-Jar启动实现
+# 一、SpringBoot源码解析-Jar启动实现
 
 ## 1、结构概述
 
@@ -378,7 +378,171 @@ public class LaunchedURLClassLoader extends URLClassLoader {
 
 当然，上述的一切都是通过 [Launcher](https://github.com/spring-projects/spring-boot/blob/master/spring-boot-project/spring-boot-tools/spring-boot-loader/src/main/java/org/springframework/boot/loader/Launcher.java) 来完成引导和启动，通过 `MANIFEST.MF` 进行具体配置。
 
+# 二、SpringBoot启动类解析
+
+## 1、结构概述
+
+```java
+@SpringBootApplication
+public class Application {
+
+    public static void main(String[] args) {
+        SpringApplication.run(Application.class, args);
+    }
+
+}
+```
+
+##  2、源码分析
+
+### `SpringApplication类`
+
+```java
+public static ConfigurableApplicationContext run(Class<?> primarySource, String... args) {
+   return run(new Class<?>[] { primarySource }, args);
+}
+//class=Application.class
+public static ConfigurableApplicationContext run(Class<?>[] primarySources, String[] args) {
+   return new SpringApplication(primarySources).run(args);
+}
+```
+
+#### `SpringApplication类初始化`
+
+```java
+public SpringApplication(ResourceLoader resourceLoader, Class<?>... primarySources) {
+    this.resourceLoader = resourceLoader;
+    Assert.notNull(primarySources, "PrimarySources must not be null");
+    this.primarySources = new LinkedHashSet<>(Arrays.asList(primarySources));
+    this.webApplicationType = WebApplicationType.deduceFromClasspath();
+    // 初始化 initializers 属性
+    setInitializers((Collection) getSpringFactoriesInstances(ApplicationContextInitializer.class));
+    // 初始化 listeners 属性
+    setListeners((Collection) getSpringFactoriesInstances(ApplicationListener.class));
+    this.mainApplicationClass = deduceMainApplicationClass();
+}
+```
+
+- resourceLoader：资源加载器
+- primarySources：Application.class
+- webApplicationType：根据classPath判断Web应用类型
+- setInitializers：initializers就是在容器刷新前调用该类的initialize方法,`IOC`之前的动作；通常用于需要对应用程序上下文进行编程初始化的web应用程序中。例如，根据上下文环境注册属性源或激活配置文件等。[参考地址](https://www.cnblogs.com/hello-shf/p/10987360.html)
+- setListeners：初始化事件监听数组
+- deduceMainApplicationOnclass：实例化`Application`启动类
+
+#### `调用run方法`
+
+```java
+public ConfigurableApplicationContext run(String... args) {
+    //<1> 主要用于简单统计运行启动过程的时常
+    StopWatch stopWatch = new StopWatch();
+    stopWatch.start();
+    ConfigurableApplicationContext context = null;
+    Collection<SpringBootExceptionReporter> exceptionReporters = new ArrayList<>();
+    // <2> 配置 headless 属性
+    configureHeadlessProperty();
+    //<3> 获得 SpringApplicationRunListener 的数组，并启动监听
+    SpringApplicationRunListeners listeners = getRunListeners(args);
+    listeners.starting();
+    try {
+        // <4> 创建  ApplicationArguments 对象
+        ApplicationArguments applicationArguments = new DefaultApplicationArguments(args);
+        // <5> 加载属性配置
+        ConfigurableEnvironment environment = prepareEnvironment(listeners, applicationArguments);
+        configureIgnoreBeanInfo(environment);
+        // <6> 打印SpringBanner
+        Banner printedBanner = printBanner(environment);
+        // <7>创建spring容器
+        context = createApplicationContext();
+        // <8> 异常报告器
+        exceptionReporters = getSpringFactoriesInstances(SpringBootExceptionReporter.class,
+                                                         new Class[] { ConfigurableApplicationContext.class }, context);
+        // <9> 主要是调用所有初始化类的 initialize 方法
+        prepareContext(context, environment, listeners, applicationArguments, printedBanner);
+        // <10> 刷新 Spring 容器。
+        refreshContext(context);
+        // <11> 执行 Spring 容器的初始化的后置逻辑。默认实现为空
+        afterRefresh(context, applicationArguments);
+        
+        stopWatch.stop();
+        if (this.logStartupInfo) {
+            new StartupInfoLogger(this.mainApplicationClass).logStarted(getApplicationLog(), stopWatch);
+        }
+        // <12> 通知 SpringApplicationRunListener 的数组，Spring 容器启动完成。
+        listeners.started(context);
+        // <13> 调用 ApplicationRunner 或者 CommandLineRunner 的运行方法。
+        callRunners(context, applicationArguments);
+    }
+    catch (Throwable ex) {
+        handleRunFailure(context, ex, exceptionReporters, listeners);
+        throw new IllegalStateException(ex);
+    }
+		// <14> 通知 SpringApplicationRunListener 的数组，Spring 容器运行中。
+    try {
+        listeners.running(context);
+    }
+    catch (Throwable ex) {
+        handleRunFailure(context, ex, exceptionReporters, null);
+        throw new IllegalStateException(ex);
+    }
+    return context;
+}
+```
+
+- <3>处 listeners.starting()方法：最终触发监听器的`onApplicationEvent`方法。[事件监听](https://mp.weixin.qq.com/s/NDFaIqBd-fRbDIE5vqH6pQ)
+- <5>处prepareEnvironment方法：加载属性配置
+- <7>处创建spring容器：根据 `webApplicationType` 类型，获得对应的 ApplicationContext 对象
+
+```java
+protected ConfigurableApplicationContext createApplicationContext() {
+    Class<?> contextClass = this.applicationContextClass;
+    if (contextClass == null) {
+        try {
+            switch (this.webApplicationType) {
+                case SERVLET:
+                    contextClass = Class.forName(DEFAULT_SERVLET_WEB_CONTEXT_CLASS);
+                    break;
+                case REACTIVE:
+                    contextClass = Class.forName(DEFAULT_REACTIVE_WEB_CONTEXT_CLASS);
+                    break;
+                default:
+                    contextClass = Class.forName(DEFAULT_CONTEXT_CLASS);
+            }
+        }
+        catch (ClassNotFoundException ex) {
+            throw new IllegalStateException(
+                "Unable create a default ApplicationContext, please specify an ApplicationContextClass", ex);
+        }
+    }
+    //默认是AnnotationConfigApplicationContext实例
+    return (ConfigurableApplicationContext) BeanUtils.instantiateClass(contextClass);
+}
+```
+
+- <9>处 prepareContext方法：准备 ApplicationContext 对象，主要是初始化它的一些属性
+- <10>处refreshContext方法：启动（刷新） Spring 容器
+
+```java
+private void refreshContext(ConfigurableApplicationContext context) {
+    //执行spring刷新容器的逻辑
+    refresh((ApplicationContext) context);
+    if (this.registerShutdownHook) {
+        try {
+            //注册 ShutdownHook 钩子:主要用于 Spring 应用的关闭时，销毁相应的 Bean 们
+            context.registerShutdownHook();
+        }
+        ...
+    }
+}
+```
+
+- <13>callRunners方法：调用 ApplicationRunner 或者 CommandLineRunner 的运行方法
 
 
- 
+
+
+
+
+
+
 

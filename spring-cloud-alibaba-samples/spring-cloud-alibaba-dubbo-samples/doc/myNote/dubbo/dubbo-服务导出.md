@@ -119,9 +119,7 @@ public class DubboClientApplication {
 
 ​	在有注册中心，需要注册提供者地址的情况下 [[2\]](http://dubbo.apache.org/zh-cn/docs/dev/implementation.html#fn2)，`ServiceConfig` 解析出的 URL 的格式为: `registry://registry-host/org.apache.dubbo.registry.RegistryService?export=URL.encode("dubbo://service-host/com.fuzy.example.service.OrderService?version=1.0.0")`，
 
-​	基于扩展点自适应机制，通过 URL 的 `registry://` 协议头识别，就会调用 `RegistryProtocol` 的 `export()` 方法，将 `export` 参数中的提供者 URL，先注册到注册中心。
-
-​	再重新传给 `Protocol` 扩展点进行暴露： `dubbo://service-host/com.fuzy.example.service.OrderService?version=1.0.0`，然后基于扩展点自适应机制，通过提供者 URL 的 `dubbo://` 协议头识别，就会调用 `DubboProtocol` 的 `export()` 方法，打开服务端口。
+​	基于扩展点自适应机制，通过 URL 的 `registry://` 协议头识别，就会调用 `RegistryProtocol` 的 `export()` 方法，将 `export` 参数中的提供者 URL，**先注册到注册中心。再重新传给 `Protocol` 扩展点进行暴露**： `dubbo://service-host/com.fuzy.example.service.OrderService?version=1.0.0`，然后基于扩展点自适应机制，通过提供者 URL 的 `dubbo://` 协议头识别，就会调用 `DubboProtocol` 的 `export()` 方法，打开服务端口。
 
 ##### c、拦截服务
 
@@ -197,17 +195,61 @@ public Object invokeMethod(Object o, String n, Class[] p, Object[] v) throws jav
 
 ​	构建好了代理类之后，返回一个`AbstractproxyInvoker`,并且它实现了`doInvoke`方法，这个地方似乎看到了`dubbo`消费者调用过 来的时候触发的影子，因为`wrapper.invokeMethod`本质上就是触发上面动态代理类的方法`invokeMethod`。所以，简单总结一下`Invoke`本质上应该是一个代理，经过层层包装最终进行了发布。当消费者发起请求的时候，会获得这个`invoker`进行调用。
 
+​	由于 `Invoker` 是 Dubbo 领域模型中非常重要的一个概念，很多设计思路都是向它靠拢。这就使得 `Invoker` 渗透在整个实现代码里，对于刚开始接触 Dubbo 的人，确实容易给搞混了。 下面我们用一个精简的图来说明最重要的两种 `Invoker`：服务提供 `Invoker` 和服务消费 `Invoker`：
+
+![/dev-guide/images/dubbo_rpc_invoke.jpg](http://dubbo.apache.org/docs/zh-cn/dev/sources/images/dubbo_rpc_invoke.jpg)
+
+为了更好的解释上面这张图，我们结合服务消费和提供者的代码示例来进行说明：
+
+服务消费者代码：
+
+```java
+public class DemoClientAction {
+ 
+    private DemoService demoService;
+ 
+    public void setDemoService(DemoService demoService) {
+        this.demoService = demoService;
+    }
+ 
+    public void start() {
+        String hello = demoService.sayHello("world");
+    }
+}
+```
+
+上面代码中的 `DemoService` 就是上图中服务消费端的 proxy，用户代码通过这个 proxy 调用其对应的 `Invoker` [[5\]](http://dubbo.apache.org/zh-cn/docs/dev/implementation.html#fn5)，而该 `Invoker` 实现了真正的远程服务调用。
+
+服务提供者代码：
+
+```java
+public class DemoServiceImpl implements DemoService {
+ 
+    public String sayHello(String name) throws RemoteException {
+        return "Hello " + name;
+    }
+}
+```
+
+上面这个类会被封装成为一个 `AbstractProxyInvoker` 实例，并新生成一个 `Exporter` 实例。这样当网络通讯层收到一个请求后，会找到对应的 `Exporter` 实例，并调用它所对应的 `AbstractProxyInvoker` 实例，从而真正调用了服务提供者的代码。Dubbo 里还有一些其他的 `Invoker` 类，但上面两种是最重要的。
+
 http://dubbo.apache.org/zh-cn/docs/dev/implementation.html
 
 ## 3、源码分析
 
-​	本次源码分析是基于`dubbo2.7.5`版本，我们就从`SpringBoot`的自动装配开始分析`dubbo`的服务发布流程。
+![dubbo-服务导出](https://image-1301573777.cos.ap-chengdu.myqcloud.com/20200925205606.png)
+
+
+
+​	本次源码分析是基于`dubbo2.7.5`版本，我们就从`SpringBoot`的自动装配开始分析`dubbo`的服务发布流程。分析之前，我们需要明确URL在`dubbo`中的作用，官方文档有服下说明：
+
+> `Dubbo`采用 URL 作为配置信息的统一格式，所有扩展点都通过传递 URL 携带配置信息。
 
 首先从`DubboComponentScan`注解开始分析。
 
-### `DubboComponentScan`注解解析流程
+### 3.1`DubboComponentScan`注解解析流程
 
-`org.apache.dubbo.config.spring.context.annotation.DubboComponentScan`
+`org.apache.dubbo.config.spring.context.annotation.DubboComponentScan`：自动装配类
 
 ```java
 /**
@@ -228,9 +270,7 @@ public @interface DubboComponentScan {
 }
 ```
 
-​	由注解中的`@Import`注解分析`DubboComponentScanRegistrar`类，该类的作用是注册所有带有`dubbo`注解（`Service`和`Reference`）的类；
-
-`org.apache.dubbo.config.spring.context.annotation.DubboComponentScanRegistrar`
+`org.apache.dubbo.config.spring.context.annotation.DubboComponentScanRegistrar`：`向IoC容器中注入ServiceBean`
 
 ```java
 public class DubboComponentScanRegistrar implements ImportBeanDefinitionRegistrar {
@@ -289,12 +329,12 @@ public class DubboComponentScanRegistrar implements ImportBeanDefinitionRegistra
         return packagesToScan;
     }
 
-}
+}	
 ```
 
-​	
+> 通过`SpringBoot`自动装配触发`DubboComponentScanRegistrar`装载带有`dubbo`注解的类，并且执行服务导出逻辑。
 
-### 注册`ServiceBean`
+### 3.2注册`ServiceBean`
 
 ​	`ServiceAnnotationBeanPostProcessor`实例化后，会调用`postProcessBeanDefinitionRegistry`方法
 
@@ -305,7 +345,7 @@ public class ServiceAnnotationBeanPostProcessor implements BeanDefinitionRegistr
         ResourceLoaderAware, BeanClassLoaderAware {
     @Override
     public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) throws BeansException {
-        // @since 2.7.5 当Application执行了ContextRefreshedEvent和ContextClosedEvent事件后，dubbo服务也对应着刷新状态,同时
+        //当Application执行了ContextRefreshedEvent和ContextClosedEvent事件后，dubbo服务也对应着刷新状态，dubbo的服务发布也始于该方法
         registerBeans(registry, DubboBootstrapApplicationListener.class);
         Set<String> resolvedPackagesToScan = resolvePackagesToScan(packagesToScan);
 
@@ -392,35 +432,9 @@ private void registerServiceBean(BeanDefinitionHolder beanDefinitionHolder, Bean
 }
 ```
 
-### 服务发布
+> `以上代码主要目的是将dubbo组件注入到IoC容器中，同时在postProcessBeanDefinitionRegistry类中执行了registerBeans(registry, DubboBootstrapApplicationListener.class)该方法，该方法主要是dubbo服务发布的入口`
 
-​	`ServiceBean`初始化后的构造方法中并没有发现相关**服务发布**代码，`ServiceBean`部分代码如下:
-
-```java
-public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean, DisposableBean,
-        ApplicationContextAware, BeanNameAware,
-        ApplicationEventPublisherAware {
-    public ServiceBean() {
-        super();
-        this.service = null;
-    }
-
-    @Override
-    public void afterPropertiesSet() throws Exception {
-        if (StringUtils.isEmpty(getPath())) {
-            if (StringUtils.isNotEmpty(beanName)
-                && StringUtils.isNotEmpty(getInterface())
-                && beanName.startsWith(getInterface())) {
-                setPath(beanName);
-            }
-        }
-    }
-    ......//省略部分代码
-}
-
-```
-
-​	从`ServiceBean`代码中找不到**服务发布**的入口，百思不得其解。所以又翻看了之前的源码，惊喜的发现在`org.apache.dubbo.config.spring.beans.factory.annotation.ServiceAnnotationBeanPostProcessor#postProcessBeanDefinitionRegistry`方法中执行了`registerBeans(registry, DubboBootstrapApplicationListener.class)`注册监听事件，而`DubboBootstrapApplicationListener`类代码如下：
+### 3.3服务导出
 
 ```java
 public class DubboBootstrapApplicationListener extends OneTimeExecutionApplicationContextEventListener
@@ -460,8 +474,6 @@ public class DubboBootstrapApplicationListener extends OneTimeExecutionApplicati
 }
 ```
 
-​	所以此时服务发布的代码就要以从`dubboBootstrap.start()`为入口进行分析。
-
 `org.apache.dubbo.config.bootstrap.DubboBootstrap#start`:服务发布的入口
 
 ```java
@@ -495,12 +507,6 @@ public DubboBootstrap start() {
 
 `org.apache.dubbo.config.bootstrap.DubboBootstrap#exportServices`
 
-> `dubbo协议ServiceBean:<dubbo:service beanName="ServiceBean:com.fuzy.example.service.OrderService" />`
->
-> `rest协议ServiceBean:<rest:service beanName="ServiceBean:com.fuzy.example.service.OrderService" />`
->
-> 一个`dubbo`服务需要发布几次，取决于协议的配置数，如果一个`dubbo`服务配置了3个协议，`rest、webservice、dubbo`。
-
 ```java
 private void exportServices() {
     //ServiceBean:<dubbo:service beanName="ServiceBean:com.fuzy.example.service.OrderService" />
@@ -526,10 +532,17 @@ private void exportServices() {
 }
 ```
 
+> `dubbo协议ServiceBean:<dubbo:service beanName="ServiceBean:com.fuzy.example.service.OrderService" />`
+>
+> `rest协议ServiceBean:<rest:service beanName="ServiceBean:com.fuzy.example.service.OrderService" />`
+>
+> 一个`dubbo`服务需要发布几次，取决于协议的配置数，如果一个`dubbo`服务配置了3个协议，`rest、webservice、dubbo`。
+
 `org.apache.dubbo.config.ServiceConfig#export`
 
 ```java
 public synchronized void export() {
+    //<dubbo:provider export="false" /> export为false不导出服务
     if (!shouldExport()) {
         return;
     }
@@ -570,7 +583,7 @@ protected synchronized void doExport() {
 }
 ```
 
-`org.apache.dubbo.config.ServiceConfig#doExportUrls`
+`org.apache.dubbo.config.ServiceConfig#doExportUrls`：多协议多注册中心导出服务
 
 ```java
 private void doExportUrls() {
@@ -583,7 +596,9 @@ private void doExportUrls() {
         this,
         serviceMetadata
     );
-	//registry://127.0.0.1:2181/org.apache.dubbo.registry.RegistryService?application=dubbo-provider&dubbo=2.0.2&pid=13160&qos.enable=false&registry=zookeeper&release=2.7.5&timeout=25000&timestamp=1598363362970
+
+    //registryURLs =registry://127.0.0.1:2181/org.apache.dubbo.registry.RegistryService?application=dubbo-provider&dubbo=2.0.2&pid=13160&qos.enable=false&registry=zookeeper&release=2.7.5&timeout=25000&timestamp=1598363362970
+    //<1>
     List<URL> registryURLs = ConfigValidationUtils.loadRegistries(this, true);
 
     for (ProtocolConfig protocolConfig : protocols) {
@@ -597,6 +612,13 @@ private void doExportUrls() {
     }
 }
 ```
+
+> <1>处loadRegistries 方法主要包含如下的逻辑：
+>
+> 1. 检测是否存在注册中心配置类，不存在则抛出异常
+> 2. 构建参数映射集合，也就是 map
+> 3. 构建注册中心链接列表
+> 4. 遍历链接列表，并根据条件决定是否将其添加到 registryList 中
 
 `org.apache.dubbo.config.ServiceConfig#doExportUrlsFor1Protocol`
 
@@ -639,19 +661,7 @@ private void doExportUrlsFor1Protocol(ProtocolConfig protocolConfig, List<URL> r
                     if (LOCAL_PROTOCOL.equalsIgnoreCase(url.getProtocol())) {
                         continue;
                     }
-                    url = url.addParameterIfAbsent(DYNAMIC_KEY, registryURL.getParameter(DYNAMIC_KEY));
-                    URL monitorUrl = ConfigValidationUtils.loadMonitor(this, registryURL);
-                    if (monitorUrl != null) {
-                        url = url.addParameterAndEncoded(MONITOR_KEY, monitorUrl.toFullString());
-                    }
-                    if (logger.isInfoEnabled()) {
-                        if (url.getParameter(REGISTER_KEY, true)) {
-                            logger.info("Register dubbo service " + interfaceClass.getName() + " url " + url + " to registry " + registryURL);
-                        } else {
-                            logger.info("Export dubbo service " + interfaceClass.getName() + " to url " + url);
-                        }
-                    }
-
+                   //省略部分代码
                     String proxy = url.getParameter(PROXY_KEY);
                     if (StringUtils.isNotEmpty(proxy)) {
                         registryURL = registryURL.addParameter(PROXY_KEY, proxy);
@@ -667,16 +677,14 @@ private void doExportUrlsFor1Protocol(ProtocolConfig protocolConfig, List<URL> r
                 if (logger.isInfoEnabled()) {
                     logger.info("Export dubbo service " + interfaceClass.getName() + " to url " + url);
                 }
+                //<1>  Invoker创建过程 暂时可理解成一个导出服务所需的对象
                 Invoker<?> invoker = PROXY_FACTORY.getInvoker(ref, (Class) interfaceClass, url);
                 DelegateProviderMetaDataInvoker wrapperInvoker = new DelegateProviderMetaDataInvoker(invoker, this);
 			   //此时的wrappinerInvoker url为registry:// ,所以会调用Registry方法
                 Exporter<?> exporter = protocol.export(wrappinerInvoker);
                 exporters.add(exporter);
             }
-            /**
-                 * @since 2.7.0
-                 * ServiceData Store
-                 */
+  
             WritableMetadataService metadataService = WritableMetadataService.getExtension(url.getParameter(METADATA_KEY, DEFAULT_METADATA_STORAGE_TYPE));
             if (metadataService != null) {
                 metadataService.publishServiceDefinition(url);
@@ -687,16 +695,20 @@ private void doExportUrlsFor1Protocol(ProtocolConfig protocolConfig, List<URL> r
 }
 ```
 
-`org.apache.dubbo.registry.integration.RegistryProtocol#export`:实现服务注册
+> 上面代码根据 url 中的 scope 参数决定服务导出方式，分别如下：
+>
+> - scope = none，不导出服务
+> - scope != remote，导出到本地
+> - scope != local，导出到远程
 
-> - 实现对应协议的服务发布 
-> - 实现服务注册 
-> -  订阅服务重写
+#### 3.3.1 导出服务到远程
+
+`org.apache.dubbo.registry.integration.RegistryProtocol#export`:实现服务注册
 
 ```java
 //originInvoker:registry协议
 public <T> Exporter<T> export(final Invoker<T> originInvoker) throws RpcException {
-    //zookeeper://协议 
+    //// 获取注册中心 URLzookeeper://协议 
     URL registryUrl = getRegistryUrl(originInvoker);
     //dubbo://协议
     URL providerUrl = getProviderUrl(originInvoker);
@@ -706,14 +718,15 @@ public <T> Exporter<T> export(final Invoker<T> originInvoker) throws RpcExceptio
     overrideListeners.put(overrideSubscribeUrl, overrideSubscribeListener);
 
     providerUrl = overrideUrlWithConfig(providerUrl, overrideSubscribeListener);
-    //这里就交给了具体的协议去暴露服务
+    //导出服务
     final ExporterChangeableWrapper<T> exporter = doLocalExport(originInvoker, providerUrl);
-
+	// 根据 URL 加载 Registry 实现类，比如 ZookeeperRegistry
     final Registry registry = getRegistry(originInvoker);
+    // 获取已注册的服务提供者 URL
     final URL registeredProviderUrl = getUrlToRegistry(providerUrl, registryUrl);
     boolean register = providerUrl.getParameter(REGISTER_KEY, true);
     if (register) {
-        //注册服务
+        //向注中心注册服务
         register(registryUrl, registeredProviderUrl);
     }
 
@@ -724,6 +737,10 @@ public <T> Exporter<T> export(final Invoker<T> originInvoker) throws RpcExceptio
     return new DestroyableExporter<>(exporter);
 }
 ```
+
+> - 实现对应协议的服务发布 
+> - 实现服务注册 
+> - 订阅服务重写
 
 `org.apache.dubbo.registry.integration.RegistryProtocol#doLocalExport`:导出`Invoker`
 
@@ -749,14 +766,17 @@ public <T> Exporter<T> export(Invoker<T> invoker) throws RpcException {
     //真正注册的元素据 dubbo://192.168.199.203:20880/com.fuzy.example.service.OrderService?anyhost=true&application=dubbo-provider&bind.ip=192.168.199.203&bind.port=20880&deprecated=false&dubbo=2.0.2&dynamic=true&generic=false&interface=com.fuzy.example.service.OrderService&methods=getOrderByOrderCode&pid=3852&qos.enable=false&release=2.7.5&side=provider&timestamp=1598367873375
     URL url = invoker.getUrl();
 
-    //com.fuzy.example.service.OrderService:20880
+    //获取服务标识 com.fuzy.example.service.OrderService:20880
     String key = serviceKey(url);
+    //创建dubboExporter
     DubboExporter<T> exporter = new DubboExporter<T>(invoker, key, exporterMap);
     exporterMap.put(key, exporter);
 
     ....省略部分代码
 	//dubbo://192.168.199.203:20880/com.fuzy.example.service.OrderService?anyhost=true&application=dubbo-provider&bind.ip=192.168.199.203&bind.port=20880&deprecated=false&dubbo=2.0.2&dynamic=true&generic=false&interface=com.fuzy.example.service.OrderService&methods=getOrderByOrderCode&pid=3852&qos.enable=false&release=2.7.5&side=provider&timestamp=1598367873375
+    //启动服务器
     openServer(url);
+    //优化序列化
     optimizeSerialization(url);
 
     return exporter;
@@ -871,7 +891,7 @@ protected void doOpen() throws Throwable {
     }
 ```
 
-### 服务注册
+#### 3.3.2服务注册
 
 `org.apache.dubbo.registry.integration.RegistryProtocol#register`:注册服务
 
@@ -971,7 +991,7 @@ public void doRegister(URL url) {
 }
 ```
 
-
+[参考链接](http://dubbo.apache.org/zh-cn/docs/source_code_guide/export-service.html)
 
 
 
