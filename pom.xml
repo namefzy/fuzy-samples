@@ -33,6 +33,7 @@
         <module>jdk-spi</module>
         <module>spring</module>
         <module>concurrent-samples</module>
+        <module>fuzy-java</module>
     </modules>
 
 
