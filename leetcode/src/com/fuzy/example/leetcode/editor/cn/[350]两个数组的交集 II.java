@@ -35,27 +35,70 @@ package com.fuzy.example.leetcode.editor.cn;
 
 
 import java.util.Arrays;
+import java.util.HashMap;
 
 //leetcode submit region begin(Prohibit modification and deletion)
 class Solution74 {
+    public static void main(String[] args) {
+        int[] nums1 = new  int[]{1,2,2,1};
+        int[] nums2 = new  int[]{2,2};
+        intersect(nums1,nums2);
+    }
+
     /**
-     * 暴力解法
+     * 双指针解法
      * @param nums1
      * @param nums2
      * @return
      */
-    public int[] intersect(int[] nums1, int[] nums2) {
+    public  static int[] intersect1(int[] nums1, int[] nums2) {
         Arrays.sort(nums1);
         Arrays.sort(nums2);
-        for (int i = 0; i < nums1.length; i++) {
-            for (int j = 0; j < nums2.length; j++) {
-                if(nums1[i] != nums2[j]){
-
-                }
+        int index = 0 ;
+        int i = 0;
+        int j = 0;
+        int[] arrays = new int[Math.min(nums1.length,nums2.length)];
+        while (i<nums1.length&&j<nums2.length){
+            if(nums1[i]==nums2[j]){
+                arrays[index++] = nums1[i];
+                i++;
+                j++;
+            }else if(nums1[i]>nums2[j]){
+                j++;
+            }else{
+                i++;
             }
         }
+        return Arrays.copyOfRange(arrays,0,index);
+    }
+    /**
+     * HashMapK解法
+     * @param nums1
+     * @param nums2
+     * @return
+     */
+    public  static int[] intersect(int[] nums1, int[] nums2) {
 
-        return null;
+        HashMap<Integer,Integer> map = new HashMap<>(Math.min(nums1.length,nums2.length));
+        if(nums1.length>nums2.length){
+            return intersect(nums2,nums1);
+        }
+        for (int num : nums1) {
+            Integer count = map.getOrDefault(num, 0);
+            map.put(num,++count);
+        }
+        int[] arrays = new int[nums1.length];
+        int index = 0;
+        for (int i = 0; i < nums2.length; i++) {
+            Integer orDefault = map.getOrDefault(nums2[i], 0);
+            if(orDefault==0){
+                map.remove(nums2[i]);
+            }else if(map.containsKey(nums2[i])){
+                arrays[index++] = nums2[i];
+                map.put(nums2[i],--orDefault);
+            }
+        }
+        return Arrays.copyOfRange(arrays,0,index);
     }
 }
 //leetcode submit region end(Prohibit modification and deletion)
