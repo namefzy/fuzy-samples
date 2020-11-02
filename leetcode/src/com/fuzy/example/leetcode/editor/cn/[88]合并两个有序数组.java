@@ -25,25 +25,34 @@ package com.fuzy.example.leetcode.editor.cn;//给你两个有序整数数组 num
 //leetcode submit region begin(Prohibit modification and deletion)
 class Solution12 {
     public void merge(int[] nums1, int m, int[] nums2, int n) {
-        int[] copyNums = new int[m];
-        System.arraycopy(nums1,0,copyNums,0,m);
-
-        int p1 = 0;
-        int p2 = 0;
-        int p =0;
-        while (p1<m&&p2<n){
-            nums1[p++] = copyNums[p1]<nums2[p2]?copyNums[p1++]:nums2[p2++];
+        int a = 0;
+        int b = 0;
+        int[] sortArr = new int[n+m];
+        int cur;
+        while (a<m||b<n){
+            if(a==m){
+                cur = nums2[b++];
+            }else if(b==n){
+                cur = nums1[a++];
+            }else if(nums1[a]<nums1[b]){
+                cur = nums1[a++];
+            }else{
+                cur = nums2[b++];
+            }
+            sortArr[a+b-1] = cur;
         }
-        if (p1 < m){
-            System.arraycopy(copyNums, p1, nums1, p1 + p2, m + n - p1 - p2);
+        System.arraycopy(sortArr,0,nums1,0,n+m);
+
+    }
+
+    public void merge1(int[] nums1, int m, int[] nums2, int n){
+        int a = m-1;
+        int b = n-1;
+        int len = m+n-1;
+        while (a>0&&b>0){
+            nums1[len] = nums1[a]>nums2[b]?nums1[a--]:nums2[b--];
         }
-
-        if (p2 < n){
-            System.arraycopy(nums2, p2, nums1, p1 + p2, m + n - p1 - p2);
-        }
-
-
-
+        System.arraycopy(nums2,0,nums1,0,b+1);
     }
 }
 //leetcode submit region end(Prohibit modification and deletion)

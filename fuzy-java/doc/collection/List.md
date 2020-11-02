@@ -427,5 +427,221 @@ private class Itr implements Iterator<E> {
 - `ArrayList` 移除指定元素的时间复杂度是 O(n) 。
 - `ArrayList`添加元素的最好时间复杂度是 O(1) ，最坏时间复杂度是 O(n) ，平均时间复杂度是 O(n) 。
 
+# `LinkedList`
 
+## 1.概述
+
+`LinkedList`同时实现了`List`接口和`Deque`接口，也就是说它既可以看作一个顺序容器，又可以看作一个队列(*Queue*)，同时又可以看作一个栈(*Stack*)。
+
+![LinkedList_base](https://image-1301573777.cos.ap-chengdu.myqcloud.com/20201021232245.png)
+
+## 2.类图
+
+![LinkedList](https://image-1301573777.cos.ap-chengdu.myqcloud.com/20201021232330.png)
+
+## 3.属性
+
+```java
+transient int size = 0;
+/**
+ * first始终不变：
+ * 1、集合没有元素：first == null && last == null
+ * 2、集合添加了元素：first.prev == null && first.item != null
+ */
+transient Node<E> first;
+
+/**
+ * last始终不变：
+ * 1、集合没有元素：first == null && last == null
+ * 2、集合添加了元素：(last.next == null && last.item != null)
+ */
+transient Node<E> last;
+```
+
+## 4.无参构造
+
+```java
+/**
+ * 构造一个空集合
+ */
+public LinkedList() {
+}
+```
+
+## 5.添加元素
+
+### 5.1 添加元素
+
+```java
+//添加元素到链表末尾
+public boolean add(E e) {
+    linkLast(e);
+    return true;
+}
+/**
+ * first  last
+ * first a b last
+ *
+ */
+void linkLast(E e) {
+    final Node<E> l = last;
+    //创建节点
+    final Node<E> newNode = new Node<>(l, e, null);
+    //last始终指向尾节点
+    last = newNode;
+    //首次添加元素
+    if (l == null)
+        //first始终指向头节点
+        first = newNode;
+    else
+        l.next = newNode;
+    size++;
+    modCount++;
+}
+private static class Node<E> {
+    E item;
+    Node<E> next;
+    Node<E> prev;
+
+    Node(Node<E> prev, E element, Node<E> next) {
+        this.item = element;
+        this.next = next;
+        this.prev = prev;
+    }
+}
+```
+
+![LinkedList添加元素](https://image-1301573777.cos.ap-chengdu.myqcloud.com/20201025225629.png)
+
+### 5.2 指定位置添加元素
+
+```java
+public void add(int index, E element) {
+    checkPositionIndex(index);
+    //如果index=size,直接在末尾添加，等同于add(e)方法
+    if (index == size)
+        linkLast(element);
+    else
+        linkBefore(element, node(index));
+}
+/**
+ * 返回需要修改节点的位置
+ */
+Node<E> node(int index) {
+   	//根据当前添加元素的位置判断是从头开始找还是尾开始找
+    if (index < (size >> 1)) {
+        Node<E> x = first;
+        for (int i = 0; i < index; i++)
+            x = x.next;
+        return x;
+    } else {
+        Node<E> x = last;
+        for (int i = size - 1; i > index; i--)
+            x = x.prev;
+        return x;
+    }
+}
+/**
+ * 将前一个节点next->newNode
+ * 将后一个节点pre->newNode
+ */
+void linkBefore(E e, Node<E> succ) {
+    // assert succ != null;
+    final Node<E> pred = succ.prev;
+    final Node<E> newNode = new Node<>(pred, e, succ);
+    succ.prev = newNode;
+    if (pred == null)
+        first = newNode;
+    else
+        pred.next = newNode;
+    size++;
+    modCount++;
+}
+```
+
+![LinkedList_add](https://image-1301573777.cos.ap-chengdu.myqcloud.com/20201025231134.png)
+
+## 6. 获取元素
+
+### 6.1 获取第一个元素
+
+```java
+public E getFirst() {
+    final Node<E> f = first;
+    if (f == null)
+        throw new NoSuchElementException();
+    return f.item;
+}
+```
+
+### 6.2 获取最后一个元素
+
+```java
+public E getLast() {
+    final Node<E> l = last;
+    if (l == null)
+        throw new NoSuchElementException();
+    return l.item;
+}
+```
+
+## 7 移除元素
+
+```java
+public boolean remove(Object o) {
+    if (o == null) {
+        for (Node<E> x = first; x != null; x = x.next) {
+            if (x.item == null) {
+                unlink(x);
+                return true;
+            }
+        }
+    } else {
+        for (Node<E> x = first; x != null; x = x.next) {
+            if (o.equals(x.item)) {
+                unlink(x);
+                return true;
+            }
+        }
+    }
+    return false;
+}
+E unlink(Node<E> x) {
+    // assert x != null;
+    final E element = x.item;
+    final Node<E> next = x.next;
+    final Node<E> prev = x.prev;
+
+    if (prev == null) {
+        first = next;
+    } else {
+        prev.next = next;
+        x.prev = null;
+    }
+
+    if (next == null) {
+        last = prev;
+    } else {
+        next.prev = prev;
+        x.next = null;
+    }
+
+    x.item = null;
+    size--;
+    modCount++;
+    return element;
+}
+```
+
+![LinkedList_remove](https://image-1301573777.cos.ap-chengdu.myqcloud.com/20201025230220.png)
+
+## 8 仿写`LinkedList`
+
+## 9 小结
+
+- `LinkedList`是链表结构，所以不存在扩容。
+- `LinkedList` 基于节点实现的**双向**链表的 List ，每个节点都指向前一个和后一个节点从而形成链表。
+- `LinkedList`随机访问**平均**时间复杂度是 O(n) ，查找指定元素的**平均**时间复杂度是 O(n) 。
+- `LinkedList`移除指定位置的元素的最好时间复杂度是 O(1) ，最坏时间复杂度是 O(n) ，平均时间复杂度是 O(n) 。
+- `LinkedList`添加元素的最好时间复杂度是 O(1) ，最坏时间复杂度是 O(n) ，平均时间复杂度是 O(n) 。
 
