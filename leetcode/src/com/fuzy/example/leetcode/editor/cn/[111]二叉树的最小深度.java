@@ -33,8 +33,50 @@ package com.fuzy.example.leetcode.editor.cn;
  * }
  */
 class Solution49 {
+    /**
+     * 结束的条件
+     * @param root
+     * @return
+     */
     public int minDepth(TreeNode root) {
-        return 0;
+        if(root==null){
+            return 0;
+        }
+        TreeNode left = root.left;
+        TreeNode right = root.right;
+        if(left==null&&right==null){
+            return 1;
+        }
+        //2.如果左孩子和由孩子其中一个为空，那么需要返回比较大的那个孩子的深度
+        int m1 = minDepth(left);
+        int m2 = minDepth(right);
+        //这里其中一个节点为空，说明m1和m2有一个必然为0，所以可以返回m1 + m2 + 1;
+        if(root.left == null || root.right == null) return m1 + m2 + 1;
+
+        //3.最后一种情况，也就是左右孩子都不为空，返回最小深度+1即可
+        return Math.min(m1,m2) + 1;
+
+    }
+
+    public int minDepth(TreeNode root){
+        if (root == null) {
+            return 0;
+        }
+
+        if (root.left == null && root.right == null) {
+            return 1;
+        }
+
+        int min_depth = Integer.MAX_VALUE;
+        if (root.left != null) {
+            min_depth = Math.min(minDepth(root.left), min_depth);
+        }
+        if (root.right != null) {
+            min_depth = Math.min(minDepth(root.right), min_depth);
+        }
+
+        return min_depth + 1;
+
     }
 
     public class TreeNode {
