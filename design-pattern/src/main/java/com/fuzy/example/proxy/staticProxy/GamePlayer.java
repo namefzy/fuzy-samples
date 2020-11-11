@@ -10,7 +10,7 @@ package com.fuzy.example.proxy.staticProxy;
 public class GamePlayer implements IGamePlayer{
     @Override
     public void login(String username, String password) {
-
+        System.out.println("正在登录中");
     }
 
     @Override
