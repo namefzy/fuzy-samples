@@ -39,6 +39,7 @@ class Solution49 {
      * @return
      */
     public int minDepth(TreeNode root) {
+        //真正不进行递归的条件
         if(root==null){
             return 0;
         }
@@ -47,6 +48,7 @@ class Solution49 {
         if(left==null&&right==null){
             return 1;
         }
+
         //2.如果左孩子和由孩子其中一个为空，那么需要返回比较大的那个孩子的深度
         int m1 = minDepth(left);
         int m2 = minDepth(right);
@@ -54,6 +56,7 @@ class Solution49 {
         if(root.left == null || root.right == null) return m1 + m2 + 1;
 
         //3.最后一种情况，也就是左右孩子都不为空，返回最小深度+1即可
+        //不断的调用上次循环的结果
         return Math.min(m1,m2) + 1;
 
     }

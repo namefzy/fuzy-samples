@@ -1,4 +1,4 @@
-package com.fuzy.example.leetcode.editor.cn;
+package com.fuzy.example.module;
 
 /**
  * @ClassName BinarySearch
@@ -83,6 +83,33 @@ public class BinarySearch {
 
         }
         return nums[left]==target?left:-1;
+    }
+
+    /**
+    *@Description 右边界问题
+    *@Param
+    *@Return
+    *@Author fuzy
+    *@Date 2020/11/14
+    */
+    public int right_bound(int[] nums,int target){
+        if(nums.length==0){
+            return -1;
+        }
+        int left=0,right=nums.length;
+        while (left<right){
+            int mid = left+(right-left)/2;
+            if(nums[mid]==target){
+                left = mid+1;
+            }else if(nums[mid]>target){
+                right = mid;
+            }else if(nums[mid]<target){
+                left = mid+1;
+            }
+        }
+        //由于结束条件是left=right,所以结果是left-1
+        //举例：[1,2] 2 当第一次循环num[mid]<target left=0+1;
+        return left-1;
     }
 
 }
