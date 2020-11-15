@@ -12,6 +12,13 @@ import java.util.*;
  */
 public class BFS {
 
+    /**
+     * 为什么BFS算法可以找到最短距离
+     * depth每增加一次，队列中所有的节点都向前迈一步，这保证了第一次到达终点的时候，走的步数是最少的。
+     * @param start
+     * @param target
+     * @return
+     */
     int BFS(NodeList start, NodeList target){
         //核心数据结构
         Queue<NodeList> q = new LinkedList<>();

@@ -23,6 +23,9 @@ package com.fuzy.example.leetcode.editor.cn;
 //leetcode submit region begin(Prohibit modification and deletion)
 
 
+import java.util.LinkedList;
+import java.util.Queue;
+
 /**
  * Definition for a binary tree node.
  * public class TreeNode {
@@ -59,6 +62,33 @@ class Solution49 {
         //不断的调用上次循环的结果
         return Math.min(m1,m2) + 1;
 
+    }
+
+    public int minDepth2(TreeNode root){
+        if(root == null){
+            return 0;
+        }
+        Queue<TreeNode> q = new LinkedList<>();
+
+        int depth = 1;
+
+        while (!q.isEmpty()){
+            int size = q.size();
+            for (int i = 0; i < size; i++) {
+                TreeNode cur = q.poll();
+                if(cur.left==null&&cur.right==null){
+                    return depth;
+                }
+                if(cur.left!=null){
+                    q.offer(cur.left);
+                }
+                if(cur.right!=null){
+                    q.offer(cur.right);
+                }
+            }
+            depth++;
+        }
+        return depth;
     }
 
     public int minDepth1(TreeNode root){
