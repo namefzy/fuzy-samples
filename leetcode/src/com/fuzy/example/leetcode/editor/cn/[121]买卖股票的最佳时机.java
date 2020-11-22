@@ -25,6 +25,8 @@ package com.fuzy.example.leetcode.editor.cn;
 // 👍 1131 👎 0
 
 
+import javax.swing.*;
+
 //leetcode submit region begin(Prohibit modification and deletion)
 class Solution20 {
     public int maxProfit(int[] prices) {
@@ -37,6 +39,51 @@ class Solution20 {
             max = Math.max(temp,max);
         }
         return max;
+    }
+
+    public int maxProfit2(int[] prices){
+        int minPrice = 0,maxProfit = 0;
+        for (int i = 0; i < prices.length; i++) {
+            if (prices[i] < minPrice) {
+                minPrice = prices[i];
+            } else if (prices[i] - minPrice > maxProfit) {
+                maxProfit = prices[i] - minPrice;
+            }
+        }
+        return maxProfit;
+    }
+    public int maxProfit1(int[] prices){
+        int length = prices.length;
+        if(length<2){
+            return 0;
+        }
+        int[][] dp = new int[length][2];
+        dp[0][0] = 0;
+        dp[0][1] = -prices[0];
+
+        for (int i = 1; i <length ; i++) {
+            //不持股 昨天不持股，现金数不变；昨天持股的，说明今天卖出，现金数+今天卖出的钱
+            dp[i][0] = Math.max(dp[i-1][0],dp[i-1][1]+prices[i]);
+            //持股 昨天不持股，今天持股，现金-prices[i];昨天持股，今天还持股，说明没有卖出，现金数不变。
+            dp[i][1] = Math.max(dp[i-1][1],-prices[i]);
+        }
+        return dp[length-1][0];
+    }
+
+    public int maxProfix2(int[] prices){
+        int len = prices.length;
+        if(len<2){
+            return 0;
+        }
+
+        int[] dp = new int[2];
+        dp[0] = 0;
+        dp[1] = -prices[0];
+        for (int i = 0; i < len; i++) {
+            dp[0] = Math.max(dp[0],dp[1]+prices[i]);
+            dp[1] = Math.max(dp[1],-prices[i]);
+        }
+        return dp[0];
     }
 }
 //leetcode submit region end(Prohibit modification and deletion)
