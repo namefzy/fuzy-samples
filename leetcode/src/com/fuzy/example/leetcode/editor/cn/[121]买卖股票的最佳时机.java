@@ -30,60 +30,130 @@ import javax.swing.*;
 //leetcode submit region begin(Prohibit modification and deletion)
 class Solution20 {
     public int maxProfit(int[] prices) {
-        int max = 0;
-        for (int i = 0; i < prices.length; i++) {
-            int temp = 0;
-            for (int j = i+1; j < prices.length; j++) {
-                temp = Math.max(temp, prices[j] - prices[i]);
-            }
-            max = Math.max(temp,max);
-        }
-        return max;
-    }
-
-    public int maxProfit2(int[] prices){
-        int minPrice = 0,maxProfit = 0;
-        for (int i = 0; i < prices.length; i++) {
-            if (prices[i] < minPrice) {
-                minPrice = prices[i];
-            } else if (prices[i] - minPrice > maxProfit) {
-                maxProfit = prices[i] - minPrice;
-            }
-        }
-        return maxProfit;
-    }
-    public int maxProfit1(int[] prices){
+       //先确定最大值
         int length = prices.length;
-        if(length<2){
+        int res = 0;
+        for (int i = 0; i < length; i++) {
+            for (int j = i+1; j < length; j++) {
+                res = Math.max(res,prices[j]-prices[i]);
+            }
+        }
+        return res;
+    }
+    public int maxProfit2(int[] prices){
+        int length = prices.length;
+        if(length<=1){
             return 0;
         }
-        int[][] dp = new int[length][2];
-        dp[0][0] = 0;
-        dp[0][1] = -prices[0];
+        return dfs(prices,0,0,0);
+    }
 
-        for (int i = 1; i <length ; i++) {
-            //不持股 昨天不持股，现金数不变；昨天持股的，说明今天卖出，现金数+今天卖出的钱
+    public int maxProfit3(int[] prices){
+        int length = prices.length;
+        if(length<=1){
+            return 0;
+        }
+        int[] sells = new int[length];
+        int[] buys = new int[length];
+        sells[0]=0;
+        buys[0]=-prices[0];
+        for (int i = 1; i < length; i++) {
+            //第i天买入收益 = max(第i-1天买入收益，-当天股价)
+            buys[i] = Math.max(-prices[i],buys[i-1]);
+            //第i天卖出收益 = max(第i-1天卖出收益，第i-1天买入收益+当天股价)
+            sells[i] = Math.max(buys[i-1]+prices[i],sells[i-1]);
+        }
+        return sells[length-1];
+    }
+
+    public int maxProfit4(int[] prices){
+        int length = prices.length;
+        if(length<=1){
+            return 0;
+        }
+        //二维数组的后一个代表持有股票状态
+        int[][] dp = new int[length][2];
+        //不持有，初始化为0
+        dp[0][0] = 0;
+        //持有股票，则需要购买
+        dp[0][1] = -prices[0];
+        for (int i = 1; i < length; i++) {
+            //不持有股票
             dp[i][0] = Math.max(dp[i-1][0],dp[i-1][1]+prices[i]);
-            //持股 昨天不持股，今天持股，现金-prices[i];昨天持股，今天还持股，说明没有卖出，现金数不变。
+            //持有股票
             dp[i][1] = Math.max(dp[i-1][1],-prices[i]);
         }
         return dp[length-1][0];
     }
 
-    public int maxProfix2(int[] prices){
-        int len = prices.length;
-        if(len<2){
+    public int maxProfit5(int[] prices){
+        int length = prices.length;
+        if(length<=1){
             return 0;
         }
-
         int[] dp = new int[2];
-        dp[0] = 0;
         dp[1] = -prices[0];
-        for (int i = 0; i < len; i++) {
+        for (int i = 1; i < length; i++) {
+            //不持有股票
             dp[0] = Math.max(dp[0],dp[1]+prices[i]);
+            //持有股票
             dp[1] = Math.max(dp[1],-prices[i]);
         }
         return dp[0];
     }
+
+    public int maxProfit6(int[] prices){
+        int length = prices.length;
+        if(length<=1){
+            return 0;
+        }
+        int min = Integer.MAX_VALUE;
+        int currentProfit = 0;
+        for (int i = 0; i < length; i++) {
+            min = Math.min(min,prices[i]);
+            currentProfit = Math.max(prices[i]-min,currentProfit);
+        }
+        return currentProfit;
+    }
+
+    /**
+     * @param prices 股票区间
+     * @param index 天数
+     * @param status 状态 0-买入；1-卖出
+     * @param k
+     * @return
+     */
+    private int dfs(int[] prices, int index, int status, int k) {
+        //当数组执行到头，或者交易了一次结束递归
+        if(index==prices.length||k==1){
+            return 0;
+        }
+        //keep不动的值；sell卖出的值；buy买入的值
+        int keep=0,sell=0,buy=0;
+        keep = dfs(prices,index+1,status,k);
+        //对于股票来说要么不动和卖出，要么不动和买入；不可能同时存在不动、买入和卖出三种递归
+        //买入
+        if(status==0){
+            buy = dfs(prices,index+1,1,k)-prices[index];
+        }else{
+            sell = dfs(prices,index+1,0,k+1)+prices[index];
+        }
+        return Math.max(Math.max(keep,sell),buy);
+    }
+
+    public int maxProfit1(int[] prices){
+        //先确定最小值
+        if(prices.length==0){
+            return 0;
+        }
+        int length = prices.length;
+        int res = 0,min=prices[0];
+        for (int i = 1; i < length; i++) {
+            min = Math.min(min,prices[i]);
+            res = Math.max(res,prices[i]-min);
+        }
+        return res;
+    }
+
 }
 //leetcode submit region end(Prohibit modification and deletion)

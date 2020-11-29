@@ -44,6 +44,14 @@ package com.fuzy.example.leetcode.editor.cn;
 
 //leetcode submit region begin(Prohibit modification and deletion)
 class Solution36 {
+    /**
+     * [7, 1, 5, 6] 第二天买入，第四天卖出，收益最大（6-1），
+     * 所以一般人可能会想，怎么判断不是第三天就卖出了呢? 这里就把问题复杂化了，
+     * 根据题目的意思，当天卖出以后，当天还可以买入，所以其实可以第三天卖出，第三天买入，第四天又卖出（（5-1）+ （6-5） === 6 - 1）。
+     * 所以算法可以直接简化为只要今天比昨天大，就卖出。
+     * @param prices
+     * @return
+     */
     public int maxProfit(int[] prices) {
         int length = prices.length;
         int max = 0;
@@ -54,24 +62,34 @@ class Solution36 {
         }
         return max;
     }
-    
-    public int maxProfit1(int[] prices){
-        int len = prices.length;
-        if (len < 2) {
-            return 0;
-        }
-        int[][] dp = new int[len][2];
-        dp[0][0] = 0;
-        dp[0][1] = -prices[0];
 
-        for (int i = 0; i < len; i++) {
-           //今天不持股
-            dp[i][0] = Math.max(dp[i-1][0],dp[i-1][1]+prices[0]);
-            //今天持股 要么昨天持股，要么今天买入持股
-            dp[i][1] = Math.max(dp[i-1][0]-prices[0],dp[i-1][1]);
+    private int res =0;
+    public int maxProfit1(int[] prices){
+        int length = prices.length;
+        if(length<2){}
+        return 0;
+        dfs(prices,0,length,0,res);
+        return res;
+    }
+
+    private void dfs(int[] prices, int index, int length, int status, int profit) {
+        if(index==length){
+            this.res = Math.max(this.res,profit);
+            return;
         }
-        return dp[len-1][0];
+        dfs(prices, index + 1, length, status, profit);
+
+        if (status == 0) {
+            // 可以尝试转向 1
+            dfs(prices, index + 1, length, 1, profit - prices[index]);
+
+        } else {
+            // 此时 status == 1，可以尝试转向 0
+            dfs(prices, index + 1, length, 0, profit + prices[index]);
+        }
 
     }
+
+
 }
 //leetcode submit region end(Prohibit modification and deletion)
