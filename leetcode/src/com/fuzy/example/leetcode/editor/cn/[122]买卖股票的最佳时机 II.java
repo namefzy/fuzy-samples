@@ -68,8 +68,8 @@ class Solution36 {
         int length = prices.length;
         if(length<2){}
         return 0;
-        dfs(prices,0,length,0,res);
-        return res;
+//        dfs(prices,0,length,0,res);
+//        return res;
     }
 
     private void dfs(int[] prices, int index, int length, int status, int profit) {
