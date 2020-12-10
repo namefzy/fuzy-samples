@@ -37,7 +37,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 //leetcode submit region begin(Prohibit modification and deletion)
-class Solution17 {
+class Solution001 {
     public static void main(String[] args) {
         String s = String.valueOf('a' + 1);
         System.out.println(String.valueOf(s));
@@ -58,7 +58,7 @@ class Solution17 {
             if(i==0){
                 map.put(0,"");
             }else{
-                map.put(i, String.valueOf((char) ('A' + i-1)));
+                map.put(i,  String.valueOf((char) ('A' + i-1)));
             }
         }
         StringBuilder sb = new StringBuilder();
