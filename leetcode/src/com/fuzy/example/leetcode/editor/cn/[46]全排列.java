@@ -50,6 +50,7 @@ class Solution103 {
             backtrack(n,output,res,first+1);
             Collections.swap(output,first,i);
             System.out.println("交换后：output="+output.toString());
+
         }
     }
 
