@@ -14,47 +14,39 @@ package com.fuzy.example.leetcode.editor.cn;
 //
 // 
 // Related Topics 树 
-// 👍 259 👎 0
+// 👍 253 👎 0
 
 
 //leetcode submit region begin(Prohibit modification and deletion)
-
 /**
  * Definition for a binary tree node.
  * public class TreeNode {
- * int val;
- * TreeNode left;
- * TreeNode right;
- * TreeNode(int x) { val = x; }
+ *     int val;
+ *     TreeNode left;
+ *     TreeNode right;
+ *     TreeNode(int x) { val = x; }
  * }
  */
-class Solution94 {
+class Solution88 {
     public int sumOfLeftLeaves(TreeNode root) {
-        return sunOfLeftLeavesHelper(root,false);
-    }
-
-    private int sunOfLeftLeavesHelper(TreeNode root, boolean flag) {
-
-        if(root ==null){
+        //结束条件
+        if(root==null){
             return 0;
         }
-        int leave=0;
-        if(flag&&root.left==null&&root.right==null){
-            leave = root.val;
+        TreeNode left = root.left;
+        TreeNode right = root.right;
+        if(left==null){
+            return 0;
         }
-        int left = sunOfLeftLeavesHelper(root.left,true);
-        int right = sunOfLeftLeavesHelper(root.right,false);
-        return left+right+leave;
+        int a = sumOfLeftLeaves(left);
+        int b = sumOfLeftLeaves(right);
+        return a+b;
     }
-
     public class TreeNode {
-        int val;
-        TreeNode left;
-        TreeNode right;
-
-        TreeNode(int x) {
-            val = x;
-        }
-    }
+     int val;
+     TreeNode left;
+     TreeNode right;
+     TreeNode(int x) { val = x; }
+ }
 }
 //leetcode submit region end(Prohibit modification and deletion)
