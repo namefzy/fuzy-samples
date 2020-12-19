@@ -36,5 +36,11 @@ class Solution56 {
 
 
     }
+    public synchronized void A(){
+        B();
+    }
+    public synchronized void B(){
+
+    }
 }
 //leetcode submit region end(Prohibit modification and deletion)
