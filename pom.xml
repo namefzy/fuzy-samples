@@ -35,6 +35,7 @@
         <module>concurrent-samples</module>
         <module>fuzy-java</module>
         <module>design-pattern</module>
+        <module>oauth2</module>
     </modules>
 
 
