@@ -40,19 +40,20 @@ class Solution129 {
         if(head==null){
             return head;
         }
-        //偶
         ListNode evenHead = head.next;
-        //使用even临时变量
         ListNode odd = head,even = evenHead;
         while (even!=null&&even.next!=null){
             odd.next = even.next;
             odd = odd.next;
-            even = odd.next;
+            even.next = odd.next;
             even = even.next;
         }
         odd.next = evenHead;
         return head;
     }
+
+
+
 
     public class ListNode {
         int val;
