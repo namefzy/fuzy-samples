@@ -17,7 +17,7 @@ package com.fuzy.example.leetcode.editor.cn;
 
 
 //leetcode submit region begin(Prohibit modification and deletion)
-class Solution132 {
+class Solution139 {
     public String replaceSpace(String s) {
         int length = s.length();
         char[] array = new char[length*3];

@@ -15,6 +15,9 @@ package com.fuzy.example.leetcode.editor.cn;//给出两个 非空 的链表用�
 
 
 //leetcode submit region begin(Prohibit modification and deletion)
+
+import java.util.List;
+
 /**
  * Definition for singly-linked list.
  * public class ListNode {
@@ -26,6 +29,82 @@ package com.fuzy.example.leetcode.editor.cn;//给出两个 非空 的链表用�
  * }
  */
 class Solution67 {
+    //题目看错了的解法
+    public static ListNode addTwoNumbers1(ListNode l1, ListNode l2){
+        ListNode p1 = reverse(l1);
+        ListNode p2 = reverse(l2);
+        ListNode sentinel = new ListNode();
+        int flag = 0;
+        while (p1!=null||p2!=null){
+            if(p1==null){
+                if(p2.val+flag>=10){
+                    sentinel.next = new ListNode((p2.val+flag)%10);
+                    flag = 1;
+                }else{
+                    sentinel.next = new ListNode(p2.val+flag);
+                    flag = 0;
+                }
+
+                p2=p2.next;
+            }else if(p2==null){
+                if(p1.val+flag>=10){
+                    sentinel.next = new ListNode((p1.val+flag)%10);
+                    flag = 1;
+                }else{
+                    sentinel.next = new ListNode(p1.val+flag);
+                    flag = 0;
+                }
+                p1=p1.next;
+            }else{
+                if(p1.val+p2.val+flag>=10){
+                    sentinel.next = new ListNode((p1.val+p2.val+flag)%10);
+                    flag = 1;
+                }else{
+                    sentinel.next = new ListNode(p1.val+p2.val+flag);
+                    flag = 0;
+                }
+                p1=p1.next;
+                p2=p2.next;
+            }
+
+            sentinel = sentinel.next;
+
+        }
+        if(flag == 1){
+            sentinel.next = new ListNode(1);
+        }
+        return sentinel.next;
+    }
+
+    public static void main(String[] args) {
+        ListNode listNode = new ListNode(2);
+        ListNode listNode1 = new ListNode(4);
+        ListNode listNode2 = new ListNode(3);
+        listNode.next = listNode1;
+        listNode1.next = listNode2;
+
+        ListNode listNode3 = new ListNode(5);
+        ListNode listNode31 = new ListNode(6);
+        ListNode listNode32 = new ListNode(4);
+        listNode3.next = listNode31;
+        listNode31.next = listNode32;
+
+        addTwoNumbers1(listNode,listNode3);
+    }
+
+    private static ListNode reverse(ListNode node) {
+        ListNode pre = null;
+        ListNode cur = node;
+        while (cur!=null){
+            ListNode temp = cur.next;
+            cur.next = pre;
+            pre = cur;
+            cur = temp;
+        }
+        return pre;
+    }
+
+
     public ListNode addTwoNumbers(ListNode l1, ListNode l2) {
         ListNode head = null,tail = null;
         int carry = 0;
@@ -52,7 +131,7 @@ class Solution67 {
         }
         return head;
     }
-public class ListNode {
+public static class ListNode {
     int val;
     ListNode next;
     ListNode() {}
