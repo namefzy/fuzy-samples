@@ -2,7 +2,7 @@
 
 ​	Redis 是一个开源（BSD许可）的，内存中的数据结构存储系统，它可以用作数据库、缓存和消息中间件。它支持多种类型的数据结构，如 [字符串（strings）](http://www.redis.cn/topics/data-types-intro.html#strings)， [散列（hashes）](http://www.redis.cn/topics/data-types-intro.html#hashes)， [列表（lists）](http://www.redis.cn/topics/data-types-intro.html#lists)， [集合（sets）](http://www.redis.cn/topics/data-types-intro.html#sets)， [有序集合（sorted sets）](http://www.redis.cn/topics/data-types-intro.html#sorted-sets) 与范围查询， [bitmaps](http://www.redis.cn/topics/data-types-intro.html#bitmaps)， [hyperloglogs](http://www.redis.cn/topics/data-types-intro.html#hyperloglogs) 和 [地理空间（geospatial）](http://www.redis.cn/commands/geoadd.html) 索引半径查询。 Redis 内置了 [复制（replication）](http://www.redis.cn/topics/replication.html)，[LUA脚本（Lua scripting）](http://www.redis.cn/commands/eval.html)， [LRU驱动事件（LRU eviction）](http://www.redis.cn/topics/lru-cache.html)，[事务（transactions）](http://www.redis.cn/topics/transactions.html) 和不同级别的 [磁盘持久化（persistence）](http://www.redis.cn/topics/persistence.html)， 并通过 [Redis哨兵（Sentinel）](http://www.redis.cn/topics/sentinel.html)和自动 [分区（Cluster）](http://www.redis.cn/topics/cluster-tutorial.html)提供高可用性（high availability）。Redis默认16个库，但它并没有完全隔离。
 
-​	**Redis 是字典结构的存储方式，采用 key-value 存储。key 和 value 的最大长度限制 是 512M**
+​	Redis的特点：单线程、内存结构、多路复用。
 
 ## 2、Redis定位与特性
 
@@ -261,6 +261,396 @@ key：用户 id；field：商品 id；value：商品数量。
 ​	5.0 推出的数据类型。支持多播的可持久化的消息队列，用于实现发布订阅功能，借 鉴了 kafka 的设计。
 
 ## 5、Lua脚本
+
+> ​	1、一次发送多个命令，减少网络开销。 
+>
+> ​	2、Redis 会将整个脚本作为一个整体执行，不会被其他请求打断，保持原子性。 
+>
+> ​	3、对于复杂的组合命令，我们可以放在文件中，可以实现程序之间的命令集复 用。
+
+###  EVAL
+
+#### 基本操作
+
+**Lua脚本基本命令：`eval lua-script key-num [key1 key2 key3 ....] [value1 value2 value3 ....]`**
+
+- eval 代表执行 Lua 语言的命令
+- lua-script 代表 Lua 语言脚本内容
+- key-num 表示参数中有多少个 key，需要注意的是 Redis 中 key 是从 1 开始的，如果没有 key 的参数，那么写 0。
+- [key1 key2 key3…]是 key 作为参数传递给 Lua 语言，也可以不填，但是需要和 key-num 的个数对应起来。
+- [value1 value2 value3 ….]这些参数传递给 Lua 语言，它们是可填可不填的。
+
+```shell
+127.0.0.1:6379> eval "return 'Hello World'" 0
+"Hello World"
+127.0.0.1:6379> eval "return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}" 2 key1 key2 first second
+1) "key1"
+2) "key2"
+3) "first"
+4) "second"
+```
+
+#### Lua脚本在redis中操作
+
+**Lua脚本中执行redis命令**
+
+- `redis.call()`：执行命令过程中发生错误会停止脚本，并返回一个错误
+
+  ```shell
+  > eval "return redis.call('set',KEYS[1],'bar')" 1 foo
+  OK
+  ```
+
+- `redis.pcall()`：出错时并不引发(raise)错误，而是返回一个带 `err` 域的 Lua 表(table)，用于表示错误
+
+  ```shell
+  > eval "return redis.pcall('set',KEYS[1],'bar')" 1 foo1
+  OK
+  ```
+
+**Lua脚本**
+
+`test.lua`
+
+```lua
+redis.call('set','lua','lua666')
+return redis.call('get','lua')
+```
+
+`执行命令`
+
+```shell
+[root@localhost src]# redis-cli --eval ../lua/test.lua 0
+"lua666"
+```
+
+[EVAL](http://redisdoc.com/script/eval.html#eval) 命令要求你在每次执行脚本的时候都发送一次脚本主体(script body)。Redis 有一个内部的缓存机制，因此它不会每次都重新编译脚本，不过在很多场合，付出无谓的带宽来传送脚本主体并不是最佳选择。
+
+#### EVALSHA命令
+
+`EVALSHA`命令的表现如下：
+
+- 如果服务器还记得给定的 SHA1 校验和所指定的脚本，那么执行这个脚本
+- 如果服务器不记得给定的 SHA1 校验和所指定的脚本，那么它返回一个特殊的错误，提醒用户使用 [EVAL](http://redisdoc.com/script/eval.html#eval) 代替 EVALSHA
+
+以下是示例：
+
+```shell
+> set foo bar
+OK
+> eval "return redis.call('get','foo')" 0
+"bar"
+> evalsha 6b1bf486c81ceb7edf3c093f4c48582e38c0e791 0
+"bar"
+#缓存不存在
+> evalsha ffffffffffffffffffffffffffffffffffffffff 0
+(error) `NOSCRIPT` No matching script. Please use [EVAL](/commands/eval).
+```
+
+#### SCRIPT LOAD script
+
+> 将脚本 `script` 添加到脚本缓存中，但并不立即执行这个脚本。[EVAL script numkeys key [key …\] arg [arg …]](http://redisdoc.com/script/eval.html#eval) 命令也会将脚本添加到脚本缓存中，但是它会立即对输入的脚本进行求值。
+
+```shell
+redis> SCRIPT LOAD "return 'hello moto'"
+"232fd51614574cf0867b83d384a5e898cfd24e5a"
+redis> EVALSHA 232fd51614574cf0867b83d384a5e898cfd24e5a 0
+"hello moto"
+```
+
+#### SCRIPT EXISTS
+
+> 给定一个或多个脚本的 SHA1 校验和，返回一个包含 `0` 和 `1` 的列表，表示校验和所指定的脚本是否已经被保存在缓存当中。
+>
+> ## 返回值
+>
+> 一个列表，包含 `0` 和 `1` ，前者表示脚本不存在于缓存，后者表示脚本已经在缓存里面了。 列表中的元素和给定的 SHA1 校验和保持对应关系，比如列表的第三个元素的值就表示第三个 SHA1 校验和所指定的脚本在缓存中的状态。
+
+```shell
+redis> SCRIPT LOAD "return 'hello moto'"    # 载入一个脚本
+"232fd51614574cf0867b83d384a5e898cfd24e5a"
+
+redis> SCRIPT EXISTS 232fd51614574cf0867b83d384a5e898cfd24e5a
+1) (integer) 1
+redis> SCRIPT FLUSH     # 清空缓存
+OK
+redis> SCRIPT EXISTS 232fd51614574cf0867b83d384a5e898cfd24e5a
+1) (integer) 0
+```
+
+#### SCRIPT KILL
+
+> 杀死当前正在运行的 Lua 脚本，当且仅当这个脚本没有执行过任何写操作时，这个命令才生效。这个命令主要用于终止运行时间过长的脚本，比如一个因为 BUG 而发生无限 loop 的脚本，诸如此类。
+
+```shell
+# 没有脚本在执行时
+redis> SCRIPT KILL
+(error) ERR No scripts in execution right now.
+# 成功杀死脚本时
+redis> SCRIPT KILL
+OK
+(1.30s)
+# 尝试杀死一个已经执行过写操作的脚本，失败
+redis> SCRIPT KILL
+(error) ERR Sorry the script already executed write commands against the dataset. You can either wait the script termination or kill the server in an hard way using the SHUTDOWN NOSAVE command.
+(1.69s)
+```
+
+## 6、过期策略
+
+### 定时过期
+
+> 每个设置过期时间的 key 都需要创建一个定时器，到过期时间就会立即清除。该策 略可以立即清除过期的数据，对内存很友好；但是会占用大量的 CPU 资源去处理过期的 数据，从而影响缓存的响应时间和吞吐量。
+
+### 惰性过期
+
+> 只有当访问一个 key 时，才会判断该 key 是否已过期，过期则清除。该策略可以最 大化地节省 CPU 资源，却对内存非常不友好。极端情况可能出现大量的过期 key 没有再 次被访问，从而不会被清除，占用大量内存。
+
+### 淘汰机制
+
+> Redis 的内存淘汰策略，是指当内存使用达到最大内存极限时，需要使用淘汰算法来 决定清理掉哪些数据，以保证新数据的存入。
+
+**最大内存配置**
+
+`redis.config`参数配置
+
+```shell
+# maxmemory <bytes>
+```
+
+**淘汰算法**
+
+- LRU(Least Recently Used)：最近最少使用。判断最近被使用的时间，目前最远的 数据优先被淘汰。
+- LFU(Least Frequently Used)：最不常用。
+
+**淘汰策略**
+
+| 策略              | 含义                                                         |
+| ----------------- | ------------------------------------------------------------ |
+| `volatile-lru`    | 根据LRU(最近最少使用) 算法删除设置了超时属性的键，直到腾出足够内存为止。如果没有 可删除的键对象，回退到 noeviction 策略。 |
+| `allkeys-lru`     | 根据 LRU 算法删除键，不管数据有没有设置超时属性，直到腾出足够内存为止。 |
+| `volatile-lfu`    | 在带有过期时间的键中选择最不常用的。                         |
+| `allkeys-lfu`     | 在所有的键中选择最不常用的，不管数据有没有设置超时属性。     |
+| `volatile-random` | 在带有过期时间的键中随机选择。                               |
+| `allkeys-random`  | 随机删除所有键，直到腾出足够内存为止。                       |
+| `volatile-ttl`    | 根据键值对象的 ttl 属性，删除最近将要过期数据。如果没有，回退到 noeviction 策略。 |
+| **`noeviction`**  | **默认策略**，不会删除任何数据，拒绝所有写入操作并返回客户端错误信息（error）OOM command not allowed when used memory，此时 Redis 只响应读操作。 |
+
+**redis.config策略配置**
+
+```shell
+#maxmemory-policy noeviction
+```
+
+## 7、Redis持久化机制
+
+> ​	Redis 速度快，很大一部分原因是因为它所有的数据都存储在内存中。如果断电或者 宕机，都会导致内存中的数据丢失。为了实现重启后数据不丢失，Redis 提供了两种持久 化的方案，一种是 RDB 快照（Redis DataBase），一种是 AOF（Append Only File）。
+
+### 7、1 RDB(Redis DataBase-快照)
+
+​	`RDB`是Redis默认的持久化方案。当满足一定条件时，会把当前内存中的数据写入磁盘，生成一个快照文件`dump.rdb`。`Redis`重启会通过加载`dump.rdb`文件恢复数据。**那么什么时候会写入rdb文件？**
+
+#### 自动触发
+
+- 配置规则触发
+
+  ```shell
+  #redis.conf配置文件里面定义了触发频率，如下；这些配置是不冲突的，满足任意一个条件就会触发
+  save 900 1 # 900 秒内至少有一个 key 被修改（包括添加）
+  save 300 10 # 400 秒内至少有 10 个 key 被修改
+  save 60 10000 # 60 秒内至少有 10000 个 key 被修改
+  
+  #rdb相关配置
+  dir ./# 文件路径
+  dbfilename dump.rdb# 文件名称
+  rdbcompression yes# 是否是 LZF 压缩 rdb 文件
+  rdbchecksum yes# 开启数据校验
+  ```
+
+- `shutdown`命令触发
+
+- `flushall`命令触发
+
+#### 手动触发
+
+​	如果我们需要重启服务或者迁移数据，这个时候就需要手动触 RDB 快照保存。
+
+- `save`
+
+  > save 在生成快照的时候会阻塞当前 Redis 服务器， Redis 不能处理其他命令。如果 内存中的数据比较多，会造成 Redis 长时间的阻塞。生产环境不建议使用这个命令。
+
+- `bgsave`
+
+  > 执行 bgsave 时，Redis 会在后台异步进行快照操作，快照同时还可以响应客户端请 求。
+  >
+  > 具体操作是 Redis 进程执行 fork 操作创建子进程（copy-on-write），RDB 持久化 过程由子进程负责，完成后自动结束。它不会记录 fork 之后后续的命令。阻塞只发生在 fork 阶段，一般时间很短。 
+  >
+  > 用 lastsave 命令可以查看最近一次成功生成快照的时间。
+
+### 7、2 AOF(Append Only File)
+
+> redis默认不开启该持久化机制。AOF采用日志的形式记录每个命令操作，并追加到文件中。开启后，执行更改redis数据的命令时，就会把命令写入到AOF文件中。
+
+**AOF配置**
+
+```shell
+# 开关
+appendonly no
+# 文件名
+appendfilename 
+```
+
+- 数据都是实时持久化到磁盘？
+
+  由于操作系统的缓存机制，AOF 数据并没有真正地写入硬盘，而是进入了系统的硬盘缓存。
+
+- 什么时候把缓冲区的文件写入到AOF文件？
+
+  | 参数                   | 说明                                                         |
+  | ---------------------- | ------------------------------------------------------------ |
+  | `appendfsync everysec` | AOF 持久化策略（硬盘缓存到磁盘），默认 everysec                                                                                                                                      1：no 表示不执行 fsync，由操作系统保证数据同步到磁盘，速度最快，但是不太安全；                                                                                2：always 表示每次写入都执行 fsync，以保证数据同步到磁盘，效率很低；                                                                                              3：everysec 表示每秒执行一次 fsync，可能会导致丢失这 1s 数据。通常选择 everysec ， 兼顾安全性和效率。 |
+
+- 文件过大怎么办？
+
+  redis新增了重写机制，当 AOF 文件的大小超过所设定的阈值 时，Redis 就会启动 AOF 文件的内容压缩，只保留可以恢复数据的最小指令集。**可以使用命令 bgrewriteaof 来重写。**
+
+- **重写触发策略**
+
+  ```shell
+  # 重写触发机制
+  auto-aof-rewrite-percentage 100
+  auto-aof-rewrite-min-size 64mb
+  ```
+
+### 7、3 AOF与RDB比较
+
+| 持久化机制 | 优点                                                         | 缺点                                                         |
+| ---------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| `RDB`      | 1.RDB 是一个非常紧凑(compact)的文件，它保存了 redis 在某个时间点上的数据 集。这种文件非常适合用于进行备份和灾难恢复;2.生成 RDB 文件的时候，redis 主进程会 fork()一个子进程来处理所有保存工作，主 进程不需要进行任何磁盘 IO 操作。                                                                 3.RDB 在恢复大数据集时的速度比 AOF 的恢复速度要快。 | 1、RDB 方式数据没办法做到实时持久化/秒级持久化。因为 bgsave 每次运行都要 执行 fork 操作创建子进程，频繁执行成本过高;2在一定间隔时间做一次备份，所以如果 redis 意外 down 掉的话，就会丢失最后 一次快照之后的所有修改（数据有丢失）。 |
+| `AOF`      | AOF 持久化的方法提供了多种的同步频率，即使使用默认的同步频率每秒同步 一次，Redis 最多也就丢失 1 秒的数据而已 | 1、对于具有相同数据的的 Redis，AOF 文件通常会比 RDF 文件体积更大（RDB 存的是数据快照）。 2、虽然 AOF 提供了多种同步的频率，默认情况下，每秒同步一次的频率也具有较 高的性能。在高并发的情况下，RDB 比 AOF 具好更好的性能保证 |
+
+### 7、4 对于持久化方案选择
+
+​	如果可以忍受一小段时间内数据的丢失，毫无疑问使用 RDB 是最好的，定时生成 RDB 快照（snapshot）非常便于进行数据库备份， 并且 RDB 恢复数据集的速度也要 比 AOF 恢复的速度要快。 否则就使用 AOF 重写。
+
+​	但是一般情况下建议不要单独使用某一种持久化机制，而 是应该两种一起用，在这种情况下,当 redis 重启的时候会优先载入 AOF 文件来恢复原始 的数据，因为在通常情况下 AOF 文件保存的数据集要比 RDB。
+
+## 8、Redis高可用
+
+### 8、1 主从复制
+
+​	和Mysql主从复制的原因一样，Redis虽然读取写入的速度都特别快，但是也会产生读压力特别大的情况。为了分担读压力，Redis支持主从复制，Redis的主从结构可以采用一主多从或者级联结构，Redis主从复制可以根据是否是全量分为全量同步和增量同步。**Redis从节点只能读。**主从复制结构图如下：
+
+![redis主从复制](https://image-1301573777.cos.ap-chengdu.myqcloud.com/redis主从复制.png)
+
+​																													**redis主从结构**
+
+**全量同步流程**
+
+![redis主从复制-全量同步](https://image-1301573777.cos.ap-chengdu.myqcloud.com/redis主从复制-全量同步.png)
+
+​																												**redis全量同步**
+
+**主从复制的不足**
+
+- RDB文件过大，同步非常耗时
+- 在一主多从的情况下，如果主服务器挂了，对外提供的服务器就无法使用。如果每次都是手动把之前的从服务器切换成主服务器， 这个比较费时费力，还会造成一定时间的服务不可用。
+
+[redis主从复制](https://www.cnblogs.com/daofaziran/p/10978628.html)
+
+### 8、2 Sentinel
+
+#### Sentinel作用
+
+Redis 的`Sentinel`系统用于管理多个 Redis 服务器（instance）， 该系统执行以下三个任务：
+
+- **监控（Monitoring）**： Sentinel 会不断地检查你的主服务器和从服务器是否运作正常。
+- **提醒（Notification）**： 当被监控的某个 Redis 服务器出现问题时， Sentinel 可以通过 API 向管理员或者其他应用程序发送通知。
+- **自动故障迁移（Automatic failover）**： 当一个主服务器不能正常工作时， Sentinel 会开始一次自动故障迁移操作， 它会将失效主服务器的其中一个从服务器升级为新的主服务器， 并让失效主服务器的其他从服务器改为复制新的主服务器； 当客户端试图连接失效的主服务器时， 集群也会向客户端返回新主服务器的地址， 使得集群可以使用新主服务器代替失效服务器。
+
+为了保证监控服务器的可用性，我们会对 Sentinel 做集群的部署。Sentinel 既监控 所有的 Redis 服务，Sentinel 之间也相互监控，结构图如下：
+
+![image-20210117142057293](https://image-1301573777.cos.ap-chengdu.myqcloud.com/image-20210117142057293.png)
+
+​																															**redis-sentinel集群**
+
+#### 服务下线
+
+Redis 的 Sentinel 中关于下线（down）有两个不同的概念：
+
+- 主观下线（Subjectively Down， 简称 SDOWN）指的是单个 Sentinel 实例对服务器做出的下线判断。
+- 客观下线（Objectively Down， 简称 ODOWN）指的是多个 Sentinel 实例在对同一个服务器做出 SDOWN 判断， 并且通过 `SENTINEL is-master-down-by-addr` 命令互相交流之后， 得出的服务器下线判断。 （一个 Sentinel 可以通过向另一个 Sentinel 发送 `SENTINEL is-master-down-by-addr` 命令来询问对方是否认为给定的服务器已下线。）
+
+#### 故障转移
+
+​	如果`master`被标记为下线，就会开始故障转移流程。那么在`sentinel集群`中谁来做故障转移这件事？故障转移流程的第一步就是在`Sentinel`集群选择一个 Leader，由 Leader 完成故障 转移流程。Sentinle通过[Raft](http://thesecretlivesofdata.com/raft/)算法，实现 Sentinel 选举，其中`raft`算法的核心思想就是**少数服从多数**，所以在配置服务器的时候总数为奇数最好。
+
+### 8、3 `Redis Cluster`
+
+​	`Redis Cluster`可以看成是由多个`Redis`实例组成的数据集合。客户端不需要关注数据的子集到底存储在哪个节点，只需要关注这个集合整体。它是一个去中心化的结构。已3主3从为例：
+
+![image-20210117205709847](https://image-1301573777.cos.ap-chengdu.myqcloud.com/image-20210117205709847.png)
+
+[`redis cluster`集群搭建](https://gper.club/articles/7e7e7f7ff7g5egc7g6d)
+
+#### 数据分布
+
+​	redis没有使用**哈希取模**，也没有使用[一致性哈希](https://www.jianshu.com/p/528ce5cd7e8f)算法，而是采用对key进行**CRC16**算法计算再%槽位个数（16384），得到的一个slot的值，数据则落在这个槽上。key和每个槽位的的关系是永远不会变的。
+
+![image-20210117210303614](https://image-1301573777.cos.ap-chengdu.myqcloud.com/image-20210117210303614.png)
+
+​																													**redis槽位计算**
+
+#### 客户端重定向
+
+```shell
+#服务端返回 MOVED，也就是根据 key 计算出来的 slot 不归 7005端口管理，而是 归7004端口管理，服务端返回 MOVED 告诉客户端去7004端口操作。
+127.0.0.1:7005> set jeck 5
+(error) MOVED 598 192.168.56.101:7004
+```
+
+Jedis 等客户端会在本地维护一份 slot——node 的映射关系，大部分时候不需要重 定向，所以叫做 smart jedis（需要客户端支持）。 
+
+#### 数据迁移
+
+​	因为 key 和 slot 的关系是永远不会变的，当新增了节点的时候，需要把原有的 slot 分配给新的节点负责，并且把相关的数据迁移过来。
+
+#### 集群的优缺点
+
+**优点**
+
+- 无中心架构
+- 数据按照 slot 存储分布在多个节点，节点间数据共享，可动态调整数据分布。
+- 可扩展性，可线性扩展到 1000 个节点（官方推荐不超过 1000 个），节点可动 态添加或删除。
+- 高可用性，部分节点不可用时，集群仍可用。通过增加 Slave 做 standby 数据副 本，能够实现故障自动 failover，节点之间通过 gossip 协议交换状态信息，用投票机制 完成 Slave 到 Master 的角色提升。
+- 降低运维成本，提高系统的扩展性和可用性。
+
+**缺点**
+
+- Client 实现复杂，驱动要求实现 Smart Client，缓存 slots mapping 信息并及时 更新，提高了开发难度，客户端的不成熟影响业务的稳定性。
+- 节点会因为某些原因发生阻塞（阻塞时间大于 clutser-node-timeout），被判断 下线，这种 failover 是没有必要的。
+- 数据通过异步复制，不保证数据的强一致性。
+- 多个业务使用同一套集群时，无法根据统计区分冷热数据，资源隔离性较差，容 易出现相互影响的情况。
+
+[redis文档](http://redisdoc.com/)
+
+
+
+
+
+
+
+
+
+​	
+
+
+
+
+
+​	
+
+​	
 
 
 
