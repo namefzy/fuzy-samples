@@ -32,8 +32,42 @@ import java.util.List;
  * }
  */
 class Solution81 {
+    public static void main(String[] args) {
+        ListNode listNode = new ListNode(1);
+        ListNode listNode1 = new ListNode(1);
+        ListNode listNode2 = new ListNode(2);
+        ListNode listNode3= new ListNode(1);
+        listNode2.next=listNode3;
+        listNode1.next=listNode2;
+        listNode.next=listNode1;
+        isPalindrome1(listNode);
+    }
+    public static boolean isPalindrome2(ListNode head) {
+        ListNode tail = getListNode(head);
+        while(head!=null&&tail!=null){
+            if(head.val!=tail.val){
+                return false;
+            }
+            head = head.next;
+            tail = tail.next;
+        }
+        return true;
+    }
+    public static ListNode getListNode(ListNode head){
+        ListNode pre = null;
+        ListNode cur = head;
+        while(cur!=null){
+            //记录下次遍历节点位置
+            ListNode temp = cur.next;
+            //第一次遍历指向null，第二次指向第一个节点
+            cur.next = pre;
+            pre = cur;
+            cur = temp;
+        }
+        return pre;
+    }
 
-    public boolean isPalindrome1(ListNode head){
+    public static boolean isPalindrome1(ListNode head){
         if(head == null){
             return true;
         }
@@ -55,7 +89,7 @@ class Solution81 {
     }
 
 
-    private ListNode reverseList(ListNode head) {
+    private static ListNode reverseList(ListNode head) {
         ListNode prev = null;
         ListNode curr = head;
         while (curr!=null){
@@ -75,7 +109,7 @@ class Solution81 {
      * @param head
      * @return
      */
-    private ListNode endOfFirstHalf(ListNode head) {
+    private  static ListNode endOfFirstHalf(ListNode head) {
         ListNode fast = head;
         ListNode slow = head;
 
@@ -104,7 +138,7 @@ class Solution81 {
         return true;
     }
 
-    public class ListNode {
+    public static class ListNode {
         int val;
         ListNode next;
 

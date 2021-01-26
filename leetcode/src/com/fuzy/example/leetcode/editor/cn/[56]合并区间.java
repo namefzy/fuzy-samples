@@ -1,4 +1,4 @@
-package com.fuzy.example.leetcode.editor.cn.leetcode.editor.cn;
+package com.fuzy.example.leetcode.editor.cn;
 //给出一个区间的集合，请合并所有重叠的区间。
 //
 // 
