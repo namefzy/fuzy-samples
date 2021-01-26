@@ -1,4 +1,4 @@
-package com.fuzy.example.leetcode.editor.cn.leetcode.editor.cn;//给定一个排序链表，删除所有含有重复数字的节点，只保留原始链表中 没有重复出现 的数字。
+package com.fuzy.example.leetcode.editor.cn;//给定一个排序链表，删除所有含有重复数字的节点，只保留原始链表中 没有重复出现 的数字。
 //
 // 示例 1: 
 //
@@ -27,7 +27,7 @@ import java.util.Map;
  * ListNode(int x) { val = x; }
  * }
  */
-class Solution116 {
+class Solution151 {
     public ListNode deleteDuplicates(ListNode head) {
 
         ListNode dummy = new ListNode(-1);
