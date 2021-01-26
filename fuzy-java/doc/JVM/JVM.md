@@ -204,11 +204,9 @@ CA FE BA BE 00 00 00 34  00 43 0A 00 0A 00 2F 08
 ......
 ```
 
-#### 1.2.2 类的加载（初始化）
+#### 1.2.2 类的生命周期
 
 > ​	当程序**主动**使用某个类时，如果该类还未被加载到内存中，则JVM会通过加载、连接、初始化3个步骤来对该类进行初始化。如果没有意外，JVM将会连续完成3个步骤，所以有时也把这个3个步骤统称为类加载或类初始化。**在java代码中，类型的加载、连接、与初始化过程都是在程序运行期间完成的（类从磁盘加载到内存中经历的三个阶段）。**
-
-##### 1.2.2.1 类的生命周期
 
 ![image-20210124205138155](https://image-1301573777.cos.ap-chengdu.myqcloud.com/image-20210124205138155.png)
 
@@ -398,6 +396,228 @@ static 静态代码块
 
 4、 由于操作系统出现错误而导致Java虚拟机进程终止
 
+### 1、3 类加载器
 
+#### 什么是类加载器
+
+- 负责读取 Java 字节代码，并转换成 java.lang.Class 类的一个实例的代码模块。 
+
+- 类加载器除了用于加载类外，还可用于确定类在Java虚拟机中的唯一性。
+
+> **一个类在同一个类加载器中具有唯一性(Uniqueness)，而不同类加载器中是允许同名类存在的， 这里的同名是指全限定名相同。但是在整个JVM里，纵然全限定名相同，若类加载器不同，则仍然不算作是同一个类，无法通过 instanceOf 、equals 等方式的校验。**
+
+![image-20210125213524662](https://image-1301573777.cos.ap-chengdu.myqcloud.com/image-20210125213524662.png)
+
+我们来看下下面代码：
+
+```java
+public class Demo3 {
+    public static void main(String[] args) {
+        //获取App ClassLoader
+        ClassLoader classLoader= Demo3.class.getClassLoader();
+
+        System.out.println(classLoader);
+        //获取App ClassLoader的父加载器 Extension ClassLoader
+        System.out.println(classLoader.getParent());
+        //获取Extension ClassLoader的父加载器 Bootstrap ClassLoader
+        System.out.println(classLoader.getParent().getParent());
+    }
+}
+```
+
+```java
+sun.misc.Launcher$AppClassLoader@18b4aac2
+sun.misc.Launcher$ExtClassLoader@4554617c
+null
+```
+
+**为什么获取`Bootstrap ClassLoader`为空？**原因是Bootstrap Loader（启动类加载器）是用C++语言实现的（这里仅限于Hotspot，也就是JDK1.5之后默认的虚拟机，有很多其他的虚拟机是用Java语言实现的），找不到一个确定的返回父Loader的方式，于是就返回null。
+
+#### JVM类加载机制的三种方式
+
+- **全盘负责**
+
+  当一个类加载器负责加载某个Class时，该Class所依赖的和引用的其他Class也将由该 类加载器负责载入，除非显示使用另外一个类加载器来载入。
+
+- **双亲委派**（**重点**）
+
+  指子类加载器如果没有加载过该目标类，就先委托父类加载器加载该目标类，只有在父类加载器找不到字节码文件的情况下才从自己的类路径中查找并装载目标类。
+
+  > **双亲委派机制加载Class的具体过程：**
+  >
+  > **1、当`AppClassLoader`加载一个class时，它首先不会自己去尝试加载这个类，而是把类加载请求委派给父类加载器`ExtClassLoader`去完成。**
+  >
+  > **2、当`ExtClassLoader`加载一个class时，它首先也不会自己去尝试加载这个类，而是把类加载请求委派给`BootStrapClassLoader`去完成。**
+  >
+  > **3、如果`BootStrapClassLoader`加载失败（例如在 $JAVA_HOME/jre/lib里未查找到该class），会使用`ExtClassLoader`来尝试加载。**
+  >
+  > **4、若`ExtClassLoader`也加载失败，则会使用`AppClassLoader`来加载，如果`AppClassLoader`也加载失败,则会寻找自定义的类加载器，再不存在，则会报出异常`ClassNotFoundException`。**
+
+  ![双亲委派加载机制](https://image-1301573777.cos.ap-chengdu.myqcloud.com/双亲委派加载机制.png)
+
+  ​																														**双亲委派机制**
+
+- **缓存机制**
+
+  ​		缓存机制将会保证所有加载过的Class都将在内存中缓存，当程序中需要使用某个Class 时，类加载器先从内存的缓存区寻找该Class，只有缓存区不存在，系统才会读取该类对应的二进 制数据，并将其转换成Class对象，存入缓存区。这就是为什么修改了Class后，必须重启JVM，程 序的修改才会生效.对于一个类加载器实例来说，相同全名的类只加载一次，即`loadClass`方法不 会被重复调用。
+
+#### 双亲委派机制
+
+#### ![类加载器](https://image-1301573777.cos.ap-chengdu.myqcloud.com/类加载器.png)
+
+​																								**类加载器结构**
+
+其中核心代码则是`ClassLoader`中的`loadClass()`方法，该方法中的逻辑就是双亲委派机制的实现，下面分析下源码：
+
+`java.lang.ClassLoader#loadClass(java.lang.String, boolean)`：根据name加载class
+
+```java
+public Class<?> loadClass(String name) throws ClassNotFoundException {
+    return loadClass(name, false);
+}
+
+protected Class<?> loadClass(String name, boolean resolve)
+    throws ClassNotFoundException
+{
+    synchronized (getClassLoadingLock(name)) {
+        // 先从缓存查找该class对象，找到就不用重新加载
+        Class<?> c = findLoadedClass(name);
+        if (c == null) {
+            long t0 = System.nanoTime();
+            try {
+                if (parent != null) {
+                    //如果找不到，则委托给父类加载器去加载
+                    c = parent.loadClass(name, false);
+                } else {
+                    //如果没有父类，则委托给启动加载器去加载
+                    c = findBootstrapClassOrNull(name);
+                }
+            } catch (ClassNotFoundException e) {
+                // ClassNotFoundException thrown if class not found
+                // from the non-null parent class loader
+            }
+
+            if (c == null) {
+                // If still not found, then invoke findClass in order
+                // 如果都没有找到，则通过自定义实现的findClass去查找并加载
+                c = findClass(name);
+
+                // this is the defining class loader; record the stats
+                sun.misc.PerfCounter.getParentDelegationTime().addTime(t1 - t0);
+                sun.misc.PerfCounter.getFindClassTime().addElapsedTimeFrom(t1);
+                sun.misc.PerfCounter.getFindClasses().increment();
+            }
+        }
+        if (resolve) {
+            //是否需要在加载时进行解析
+            resolveClass(c);
+        }
+        return c;
+    }
+}
+```
+
+`java.lang.ClassLoader#findClass`：如果没找到则会抛出`ClassNotFoundException`异常
+
+```java
+//一般通过重写该方法来打破双亲委派机制
+protected Class<?> findClass(String name) throws ClassNotFoundException {
+    throw new ClassNotFoundException(name);
+}
+```
+
+#### 自定义类加载器
+
+```java
+public class MyClassLoader extends ClassLoader {
+    private String root;
+
+    protected Class<?> findClass(String name) throws ClassNotFoundException {
+        byte[] classData = loadClassData(name);
+        if (classData == null) {
+            throw new ClassNotFoundException();
+        } else {
+            return defineClass(name, classData, 0, classData.length);
+        }
+    }
+
+    private byte[] loadClassData(String className) {
+        String fileName = root + File.separatorChar
+            + className.replace('.', File.separatorChar) + ".class";
+        try {
+            InputStream ins = new FileInputStream(fileName);
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            int bufferSize = 1024;
+            byte[] buffer = new byte[bufferSize];
+            int length = 0;
+            while ((length = ins.read(buffer)) != -1) {
+                baos.write(buffer, 0, length);
+            }
+            return baos.toByteArray();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public String getRoot() {
+        return root;
+    }
+
+    public void setRoot(String root) {
+        this.root = root;
+    }
+
+    public static void main(String[] args)  {
+
+        MyClassLoader classLoader = new MyClassLoader();
+        classLoader.setRoot("D:\\dirtemp");
+
+        Class<?> testClass = null;
+        try {
+            testClass = classLoader.loadClass("com.yichun.classloader.Demo1");
+            Object object = testClass.newInstance();
+            System.out.println(object.getClass().getClassLoader());
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        } catch (InstantiationException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+> 1、这里传递的文件名需要是类的全限定性名称，即com.yichun.test.classloading.Test格式的，因为defineClass 方法是按这种格式进行处理的。 
+>
+> 2、最好不要重写`loadClass`方法，**因为这样容易破坏双亲委托模式**。
+>
+> 3、这类Test 类本身可以被`AppClassLoader`类加载，因此我们不能把com/yichun/test/classloading/Test.class放在类路径下。否则，由于双亲委托机制的存在，会直接导致该类由`AppClassLoader`加载，而不会通过我们自定义类加载器来加载。
+
+**双亲委派的意义**
+
+​	**假设用户自定一个类`java.lang.Integer`，通过双亲委派机制传到启动类加载器，而启动类在核心API发现这个类的名字，发现该类已被加载，就不会重新加载这个用户自定义的类，而是直接返回已加载过的`Integer.class`，这样可以防止核心API库被随意篡改。简而言之双亲委派的意义是：系统类防止内存中出现多份同样的字节码；保证Java程序安全稳定运行。**
+
+## 2、JVM内存模型
+
+![image-20210126223228939](https://image-1301573777.cos.ap-chengdu.myqcloud.com/image-20210126223228939.png)
+
+​																																**JVM内存模型**
+
+- 非堆（方法区）
+- 堆
+  - Old区
+  - Young区
+    - Eden区
+    - S0和S1
+
+### 2、1 对象的创建过程
+
+​	**一般情况下，新创建的对象都会被分配到Eden区，一些特殊的大的对象会直接分配到Old区。**
+
+![image-20210126230223412](https://image-1301573777.cos.ap-chengdu.myqcloud.com/image-20210126230223412.png)
+
+​																																**对象创建过程**
 
 【参考连接】：https://www.cnblogs.com/yichunguo/category/1591562.html
