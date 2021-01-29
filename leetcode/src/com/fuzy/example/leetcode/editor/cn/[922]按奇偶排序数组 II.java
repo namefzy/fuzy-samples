@@ -31,29 +31,50 @@ package com.fuzy.example.leetcode.editor.cn;
 
 //leetcode submit region begin(Prohibit modification and deletion)
 class Solution155 {
-     public static void main(String[] args) {
-        int[] A =new int[]{4,2,5,7};
-         int[] ints = sortArrayByParityII(A);
-         for (int anInt : ints) {
-             System.out.println(anInt);
-         }
-     }
+    public static void main(String[] args) {
+        int[] A = new int[]{4, 2, 5, 7};
+        int[] ints = sortArrayByParityIII(A);
+        for (int anInt : ints) {
+            System.out.println(anInt);
+        }
+    }
+
+    public static int[] sortArrayByParityIII(int[] A){
+        int i = 0;
+        int j = 1;
+        for(;i<A.length;){
+            if(A[i]%2!=0){
+                for(;j<A.length;){
+                    if(A[j]%2!=1){
+                        int temp = A[i];
+                        A[i] = A[j];
+                        A[j] = temp;
+                        break;
+                    }
+                    j+=2;
+                }
+            }
+            i+=2;
+        }
+        return A;
+    }
+
     public static int[] sortArrayByParityII(int[] A) {
         for (int i = 0; i < A.length; i++) {
             //偶数位置对应奇数
-            if(i%2==0&&A[i]%2!=0){
-                for (int j = i+1; j < A.length; j++) {
+            if (i % 2 == 0 && A[i] % 2 != 0) {
+                for (int j = i + 1; j < A.length; j++) {
                     //奇数位置对应偶数
-                    if(j%2!=0&&A[j]%2==0){
+                    if (j % 2 != 0 && A[j] % 2 == 0) {
                         int temp = A[i];
                         A[i] = A[j];
                         A[j] = temp;
                     }
                 }
-            }else if (i%2!=0&&A[i]%2==0){//奇数位置对应偶数
-                for (int j = i+1; j < A.length; j++) {
+            } else if (i % 2 != 0 && A[i] % 2 == 0) {//奇数位置对应偶数
+                for (int j = i + 1; j < A.length; j++) {
                     //偶数位置对应奇数
-                    if(j%2!=0&&A[j]%2==0){
+                    if (j % 2 == 0 && A[j] % 2 != 0) {
                         int temp = A[i];
                         A[i] = A[j];
                         A[j] = temp;
