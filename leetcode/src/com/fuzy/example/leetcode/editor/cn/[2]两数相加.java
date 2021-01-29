@@ -29,6 +29,36 @@ import java.util.List;
  * }
  */
 class Solution67 {
+
+    public ListNode addTwoNumbers2(ListNode l1,ListNode l2){
+        ListNode node = new ListNode(-1);
+        ListNode pre = node;
+        int flag = 0;
+        while (l1!=null||l2!=null){
+            int a = l1==null?0:l1.val;
+            int b = l2==null?0:l2.val;
+            int sum = a+b+flag;
+            node.next = new ListNode(sum%10);
+            if(sum>=10){
+                flag = 1;
+            }else{
+                flag = 0;
+            }
+            if(l1!=null){
+                l1 = l1.next;
+            }
+            if(l2!=null){
+                l2 = l2.next;
+            }
+            node = node.next;
+        }
+
+        if(flag==1){
+            node.next = new ListNode(1);
+        }
+        return pre.next;
+    }
+
     //题目看错了的解法
     public static ListNode addTwoNumbers1(ListNode l1, ListNode l2){
         ListNode p1 = reverse(l1);
