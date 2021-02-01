@@ -667,6 +667,411 @@ public class MyClassLoader extends ClassLoader {
 
   > ​		新生代中的可用内存：复制算法用来担保的内存为9:1 可用内存中Eden：S1区为8:1 即新生代中Eden:S0:S1 = 8:1:1 现代的商业虚拟机都采用这种收集算法来回收新生代，IBM公司的专门研究表明，新生代中的对象大概98%是 “朝生夕死”的。
 
+## 3、垃圾回收
+
+​	上文中说到`Full GC、Minor GC`，其实这都是属于垃圾回收，只不过发生的区域不同。那么问题来了，什么样的对象会被垃圾回收？什么时候会发生垃圾回收？带着这样的问题，我们来看下面的内容。
+
+### 如何确定一个对象是垃圾？
+
+- 引用计数法
+
+  引用计数法很简单，如下代码：
+
+  ```java
+  Object object = new Object();
+  //业务逻辑代码.....
+  object =null;
+  ```
+
+  ​	当引用`new出来的Object对象`没有被任何引用指向时，就认为该对象是垃圾对象。但是该种方法缺点也很明显，当A对象与B对象相互持有对象时，导致永远不能回收。如下图：
+  ![image-20210130112215177](https://image-1301573777.cos.ap-chengdu.myqcloud.com/image-20210130112215177.png)
+
+  ​																										**相互引用**
+
+  如上图所示，采用引用计数法时，有以下步骤：
+
+  - a = new A()； a的引用+1； count=1
+  - b.setA(a)； a的引用+1；     count=2
+  - a=null； a的引用-1；           count=1
+
+  当a=null时，如果此时发生垃圾回收，由于a的引用不为0，依然不会被回收。此时就会造成内存泄漏。
+
+- 可达性算法
+
+  ​		**通过一系列的GC Roots（全局视角）的对象作为起始点，从这些根节点开始向下搜索，搜索所走过的路径称为引用链（Reference Chain），当一个对象到GC Roots没有任何引用链相连时，则证明此对象是不可用的。**
+
+  ![image-20210130114455778](https://image-1301573777.cos.ap-chengdu.myqcloud.com/image-20210130114455778.png)
+
+  ​																												**可达性算法 GC Root**
+
+  **分析：**
+
+  - **将方法区中`D`看作是`GC Root`，那么从D(引用)->D(堆中对象)->C(堆中对象)，这条路线上的所有对象都是可用的；**
+  - **F->C；因为F没有被外部引用，所以F被视为不可用**
+  - **再来分析下之前引用计数法遗留的问题（相互引用），由于使用了可达性分析算法，那么A对象与B对象都没有被GC ROOT引用链关联，所以堆中的A与B都会被视为不可用，从而会被垃圾回收；**
+
+那么`jvm`中规定了哪些可以属于`GC Root`呢？
+
+- Class -由系统类加载器加载的对象，这些类是不能被回收的，他们可以以静态字段的方式保持其他 持有对象。
+- Thread -活着的线程 
+- Stack Local - Java 方法的 local 变量或者参数 
+- JNI Gloabl -全局 JNI 引用 
+- Monitor Used -用于同步的监控对象 
+- Held by JVM -用于 JVM 特殊目的由 GC 保留的对象，但实际上这个与 JVM 实现有关联。
+
+参考链接:https://www.yourkit.com/docs/java/help/gc_roots.jsp
+
+### 什么时候垃圾回回收？
+
+- Young区或者Old区空间不足
+- 方法区空间不足
+- 主动调用`System.gc()`
+
+### 垃圾收集算法
+
+#### 标记-清除
+
+> **找出内存中需要回收的对象，并且把他们标记出来；此时堆中所有的对象都会被扫描一遍，从而确定需要回收的对象，比较耗时。另外此算法会产生大量的空间碎片。**
+
+- **标记阶段**
+
+  ![image-20210130142513882](https://image-1301573777.cos.ap-chengdu.myqcloud.com/image-20210130142513882.png)
+
+- **清除阶段**
+
+  ![image-20210130142543198](https://image-1301573777.cos.ap-chengdu.myqcloud.com/image-20210130142543198.png)
+
+#### 标记-复制
+
+> **将内存划分为两块相等的区域，每次只使用其中的一块。但该算法比较消耗空间。**
+
+- 标记阶段
+
+  ![image-20210130142954421](https://image-1301573777.cos.ap-chengdu.myqcloud.com/image-20210130142954421.png)
+
+- 复制阶段
+
+  **如下图，将所有存活对象移到右边，同时回收左边的垃圾。**
+
+  ![image-20210130143019975](https://image-1301573777.cos.ap-chengdu.myqcloud.com/image-20210130143019975.png)
+
+#### 标记-整理
+
+> **区别于标记复制算法，标记-整理算法是先标记存活对象，然后将所有存活对象移动到一块连续区域，然后清理掉存活区域边界以外的内存。**
+
+- 标记阶段
+
+  ![image-20210130143543684](https://image-1301573777.cos.ap-chengdu.myqcloud.com/image-20210130143543684.png)
+
+- 整理阶段
+
+  ![image-20210130143604760](https://image-1301573777.cos.ap-chengdu.myqcloud.com/image-20210130143604760.png)
+
+### 分代收集
+
+> **针对堆中不同区域，制定不同算法。**
+>
+> Young区：对象特点大多数都是朝生夕死，复制算法效率高。
+>
+> Old区：该区域都是存活时间比较长的对象，一般发生垃圾回收的频率相对来说较低；所以采取标记清除或者标记整理算法。
+
+## 4、垃圾收集器
+
+> 如果说垃圾收集算法是内存回收的策略，那么垃圾收集器就是内存回收的具体实现。
+
+![image-20210130145040032](https://image-1301573777.cos.ap-chengdu.myqcloud.com/image-20210130145040032.png)
+
+如上图展示了堆内存中不同区域可使用的垃圾收集器策略。
+
+- Young区：`Serial、ParNew、Parallel Scavenge`
+- Old区：`CMS、Serial Old、Parallel Old`
+- G1既能在老年代中被使用也能在新生代中被使用。
+
+#### `Serial`收集器
+
+> 它是一种单线程收集器，不仅仅意味着它只会使用一个CPU或者一条收集线程去完成垃圾收集工作，更 重要的是其在进行垃圾收集的时候需要暂停其他线程。
+>
+> - 优点：简单高效，拥有很高的单线程收集效率 
+> - 缺点：**收集过程需要暂停所有线程** 
+> - 算法：新生代中复制算法；老年代中使用标记整理算法 
+> - 适用范围：堆 
+> - 应用：Client模式下的默认新生代收集器
+
+![image-20210130150053236](https://image-1301573777.cos.ap-chengdu.myqcloud.com/image-20210130150053236.png)
+
+#### `ParNew`收集器
+
+> 可以把这个收集器理解为Serial收集器的多线程版本。
+>
+> - 优点：在多CPU时，比Serial效率高。 
+> - 缺点：收集过程暂停所有应用程序线程，单CPU时比Serial效率差。 
+> - 算法：复制算法 
+> - 适用范围：新生代 
+> - 应用：运行在Server模式下的虚拟机中首选的新生代收集器
+
+![image-20210130145921347](https://image-1301573777.cos.ap-chengdu.myqcloud.com/image-20210130145921347.png)
+
+#### `Parallel Scavenge`与`Parallel Old`收集器
+
+​		`Parallel Scavenge`收集器是一个新生代收集器，它也是使用复制算法的收集器，又是并行的多线程收集 器，看上去和`ParNew`一样，但是`Parallel Scanvenge`更关注系统的吞吐量。
+
+​		`Parallel Old`是老年代的收集器。使用多线程和标记-整理算法进行垃圾回 收，也是更加关注系统的吞吐量。
+
+> 吞吐量=运行用户代码的时间/(运行用户代码的时间+垃圾收集时间) 
+>
+> 比如虚拟机总共运行了100分钟，垃圾收集时间用了1分钟，吞吐量=(100-1)/100=99%。
+>
+> 若吞吐量越大，意味着垃圾收集的时间越短，则用户代码可以充分利用CPU资源，尽快完成程序 的运算任务。
+>
+> ```java
+> -XX:MaxGCPauseMillis控制最大的垃圾收集停顿时间，
+> -XX:GCTimeRatio直接设置吞吐量的大小。
+> ```
+
+#### `CMS`收集器
+
+> `CMS(Concurrent Mark Sweep)`收集器是一种以获取 最短回收停顿时间 为目标的收集器。 采用的是"**标记-清除算法**",整个过程分为4步
+>
+> ```ABAP
+> (1)初始标记 CMS initial mark 标记GC Roots直接关联对象，不用Tracing，速度很快
+> (2)并发标记 CMS concurrent mark 进行GC Roots Tracing(找出存活对象,所有GC Root链上的都为存活对象)
+> (3)重新标记 CMS remark 修改并发标记因用户程序变动的内容
+> (4)并发清除 CMS concurrent sweep 清除不可达对象回收空间，同时有新垃圾产生，留着下次清理称为浮动垃圾
+> ```
+>
+> 由于整个过程中，并发标记和并发清除，收集器线程可以与用户线程一起工作，所以总体上来 说，CMS收集器的内存回收过程是与用户线程一起并行地执行的。
+>
+> 优点：并发收集、停顿低
+>
+> 缺点：产生大量碎片，降低系统吞吐量
+
+![image-20210130183843813](https://image-1301573777.cos.ap-chengdu.myqcloud.com/image-20210130183843813.png)
+
+#### `G1(Garbage-First)`
+
+​	使用G1收集器时，Java堆的内存布局与就与其他收集器有很大差别，**它将整个Java堆划分为多个大小相等的独立区域（Region），虽然还保留有新生代和老年代的概念，但新生代和老年代不再 是物理隔离的了，它们都是一部分Region（不需要连续）的集合。所谓的G1就是优先回收垃圾最多的Region区域。**
+
+​	**值得注意的是每个Region大小都是一样的，可以是1M到32M之间的数值，但是必须保证是2的n次幂；如果对象太大，一个Region放不下[超过Region大小的50%]，那么就会直接放到H中。**
+
+![image-20210130185724499](https://image-1301573777.cos.ap-chengdu.myqcloud.com/image-20210130185724499.png)
+
+​																															**G1收集器堆内存布局**
+
+**G1的工作流程如下：**
+
+```ABAP
+(1)初始标记（Initial Marking） 标记以下GC Roots能够关联的对象，并且修改TAMS的值，需要暂停用户线程
+(2)并发标记（Concurrent Marking） 从GC Roots进行可达性分析，找出存活的对象，与用户线程并发执行
+(3)最终标记（Final Marking） 修正在并发标记阶段因为用户程序的并发执行导致变动的数据，需暂停用户线程
+(4)筛选回收（Live Data Counting and Evacuation） 对各个Region的回收价值和成本进行排序，根据用户所期望的GC停顿时间制定回收计划
+```
+
+![image-20210130190140097](https://image-1301573777.cos.ap-chengdu.myqcloud.com/image-20210130190140097.png)
+
+​																													**G1垃圾回收流程**
+
+#### `ZGC`收集器
+
+​	JDK11新引入的ZGC收集器，不管是物理上还是逻辑上，ZGC中已经不存在新老年代的概念了 会分为一个个page，当进行GC操作时会对page进行压缩，因此没有碎片问题只能在64位的linux上使用，目前用得还比较少。
+
+优点：
+
+> （1）可以达到10ms以内的停顿时间要求
+>
+> （2）支持TB级别的内存
+>
+> （3）堆内存变大后停顿时间还是在10ms以内
+
+#### 常见问题
+
+- **如何选择垃圾回收器**
+
+  ```ABAP
+  优先调整堆的大小让服务器自己来选择
+  如果内存小于100 M ，使用串行收集器
+  如果是单核，并且没有停顿时间要求，使用串行或 JVM 自己选
+  如果允许停顿时间超过1秒，选择并行或 JVM 自己选
+  如果响应时间最重要，并且不能超过1秒，使用并发收集器
+  ```
+
+- **如何开启需要的垃圾回收器**
+
+  ```shell
+  （1）串行
+  -XX：+UseSerialGC
+  -XX：+UseSerialOldGC
+  （2）并行(吞吐量优先)：
+  -XX：+UseParallelGC
+  -XX：+UseParallelOldGC
+  （3）并发收集器(响应时间优先)
+  -XX：+UseConcMarkSweepGC
+  -XX：+UseG1GC
+  ```
+
+## 5、JVM实战
+
+#### 常用命令
+
+- `jps`
+
+  > 查看java进程
+
+- `jinfo`
+
+  > **实时查看和调整JVM配置参数**
+  >
+  > 用法：`jinfo -flag name PID` 查看某个java进程的name属性的值
+  >
+  > ```shell
+  > #查看属性值
+  > jinfo -flag MaxHeapSize PID
+  > jinfo -flag UseG1GC PID
+  > #修改
+  > jinfo -flag [+|-] PID
+  > jinfo -flag <name>=<value> PID
+  > ```
+
+- `jstat`
+
+  - 查看虚拟机性能统计信息
+
+  - 查看类装载信息
+
+    ```shell
+    jstat -class PID 1000 10 查看某个java进程的类装载信息，每1000毫秒输出一次，共输出10次
+    ```
+
+  - 查看垃圾收集信息
+
+    ```shell
+    jstat -gc PID 1000 10
+    ```
+
+- `jstack`
+
+  > 查看线程堆栈信息；还可以排查死锁。
+
+  ```shell
+  jstack PID
+  ```
+
+- `jmap`
+
+  - 打印出堆内存相关信息
+
+    ```shell
+    jmap -heap PID
+    ```
+
+  - dump出堆内存相关信息
+
+    ```shell
+    jmap -dump:format=b,file=heap.hprof PID
+    ```
+
+####  常用工具
+
+##### `jconsole`
+
+​	`JConsole`工具是JDK自带的可视化监控工具。查看java应用程序的运行概况、监控堆信息、永久区使用 情况、类加载情况等。命令行输入jconsole即可。
+
+##### `jvisualvm`
+
+​	可以监控java进程的CPU、类、线程、堆栈信息以及`dupm`文件等。命令行输入`jvisualvm`命令即可，不过需要下载对应的插件，版本要对应的上。插件下载地址：https://visualvm.github.io/pluginscenters.html
+
+**监控远端Java进程**
+
+- 在`visualvm`中选中“远程”，右击“添加” 
+
+- 主机名上写服务器的`ip`地址，比如39.100.39.63，然后点击“确定”
+
+- 右击该主机"39.100.39.63"，添加“JMX”，也就是通过JMX技术具体监控远端服务器哪个Java进程
+
+- 要想让服务器上的tomcat被连接，需要改一下Catalina.sh这个文件
+
+  > 注意下面的8998不要和服务器上其他端口冲突
+  >
+  > ```xml-dtd
+  > JAVA_OPTS="$JAVA_OPTS -Dcom.sun.management.jmxremote -
+  > Djava.rmi.server.hostname=39.100.39.63 -Dcom.sun.management.jmxremote.port=8998
+  > -Dcom.sun.management.jmxremote.ssl=false -
+  > Dcom.sun.management.jmxremote.authenticate=true -
+  > Dcom.sun.management.jmxremote.access.file=../conf/jmxremote.access -
+  > Dcom.sun.management.jmxremote.password.file=../conf/jmxremote.password"
+  > ```
+
+- `在../conf文件中添加两个文件jmxremote.access和jmxremote.password；授予权限chmod 600 jmxremot`
+
+  `jmxremote.access`文件
+
+  ```access
+  guest readonly
+  manager readwrite
+  ```
+
+  `jmxremote.password`文件
+
+  ```pascal
+  guest guest
+  manager manager
+  ```
+
+- 将连接服务器地址改为公网`ip`地址
+
+  ```shell
+  hostname -i 查看输出情况
+  172.26.225.240 172.17.0.1
+  vim /etc/hosts
+  172.26.255.240 39.100.39.63
   
+  ```
+
+- 设置上述端口对应的阿里云安全策略和防火墙策略
+
+- 启动tomcat
+
+- 在刚才的JMX中输入8998端口，并且输入用户名和密码则登录成功
+
+  ```properties
+  端口:8998
+  用户名:manager
+  密码:manager
+  ```
+
+##### `arthas`
+
+> `github`：https://github.com/alibaba/arthas
+>
+> `Arthas`是Alibaba开源的Java诊断工具，采用命令行交互模式，是排查`jvm`相关问题的利器。
+
+##### `jprfiler`
+
+> idea中集成的分析内存的软件，不过是收费的。如下图是该工具的部分功能展示。
+
+![image-20210130222406450](https://image-1301573777.cos.ap-chengdu.myqcloud.com/image-20210130222406450.png)
+
+##### 其他相关工具
+
+heaphero：https://heaphero.io/
+
+perfma：https://console.perfma.com/
+
+gceasy：http://gceasy.io
+
+gcplot：https://it.gcplot.com/
+
+### JVM性能优化指南
+
+![image-20210130222931415](https://image-1301573777.cos.ap-chengdu.myqcloud.com/image-20210130222931415.png)
+
+## 6、常见问题
+
+- Young区GC会发生`stop the world`吗？
+
+  > 不管什么 GC，都会发送 stop-the-world，区别是发生的时间长短。而这个时间跟垃圾收集器又有关 系，Serial、PartNew、Parallel Scavenge 收集器无论是串行还是并行，都会挂起用户线程，而 CMS 和 G1 在并发标记时，是不会挂起用户线程的，但其它时候一样会挂起用户线程，stop the world 的时 间相对来说就小很多了。
+
+- major GC 和full GC的区别
+
+  > Major GC在很多参考资料中是等价于 Full GC 的。一般情况下，一次 Full GC 将会对年轻代、老年代、元空间以及堆外内存进行垃圾回收。触 发 Full GC 的原因有很多：当年轻代晋升到老年代的对象大小，并比目前老年代剩余的空间大小还要大 时，会触发 Full GC；当老年代的空间使用率超过某阈值时，会触发 Full GC；当元空间不足时（JDK1.7 永久代不足），也会触发 Full GC；当调用`System.gc()`也会安排一次 Full GC。
 
 【参考连接】：https://www.cnblogs.com/yichunguo/category/1591562.html
