@@ -15,12 +15,12 @@
     <!-- Root BeanDefinition 不需要合并，不存在 parent -->
     <!-- 普通 beanDefinition GenericBeanDefinition -->
     <!-- 经过合并后 GenericBeanDefinition 变成 RootBeanDefinition -->
-    <bean id="user" class="com.fuzy.spring.model.User">
+    <bean id="user" class="com.example.fuzy.spring.model.User">
         <property name="age" value="1"/>
         <property name="name" value="小马哥"/>
     </bean>
 
-    <bean id="superUser" class="com.fuzy.spring.model.SonUser" parent="user"
+    <bean id="superUser" class="com.example.fuzy.spring.model.SonUser" parent="user"
           primary="true">
         <property name="address" value="杭州"/>
     </bean>

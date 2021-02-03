@@ -1,7 +1,7 @@
-package com.fuzy.spring.ioc.lookup;
+package com.example.fuzy.spring.ioc.lookup;
 
-import com.fuzy.spring.annotation.Super;
-import com.fuzy.spring.model.User;
+import com.example.fuzy.spring.annotation.Super;
+import com.example.fuzy.spring.model.User;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.beans.factory.ObjectFactory;

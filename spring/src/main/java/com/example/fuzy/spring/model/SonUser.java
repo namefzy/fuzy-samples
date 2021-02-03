@@ -1,6 +1,6 @@
-package com.fuzy.spring.model;
+package com.example.fuzy.spring.model;
 
-import com.fuzy.spring.annotation.Super;
+import com.example.fuzy.spring.annotation.Super;
 
 /**
  * @author fuzy

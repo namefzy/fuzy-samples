@@ -1,6 +1,4 @@
-package com.fuzy.spring.model;
-
-import java.beans.*;
+package com.example.fuzy.spring.model;
 
 /**
  * @author fuzy
