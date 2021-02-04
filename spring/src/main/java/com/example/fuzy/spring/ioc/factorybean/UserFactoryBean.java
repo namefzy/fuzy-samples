@@ -10,7 +10,7 @@ import org.springframework.beans.factory.FactoryBean;
  * @Date 2021/2/3 22:51
  * @Version 1.0
  */
-public class StudentFactoryBean implements FactoryBean<User> {
+public class UserFactoryBean implements FactoryBean<User> {
 
     private User user;
 

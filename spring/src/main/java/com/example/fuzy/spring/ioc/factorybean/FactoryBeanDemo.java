@@ -22,7 +22,7 @@ public class FactoryBeanDemo {
         ApplicationContext applicationContext = new ClassPathXmlApplicationContext("META-INF\\FactoryBean.xml");
         User student = (User) applicationContext.getBean("student");
         System.out.println(student);
-        StudentFactoryBean bean = (StudentFactoryBean) applicationContext.getBean("&student");
+        UserFactoryBean bean = (UserFactoryBean) applicationContext.getBean("&student");
         System.out.println(bean);
         User object = bean.getObject();
         System.out.println(student==object);
