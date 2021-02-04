@@ -14,6 +14,13 @@ public class User {
 
     private String name;
 
+    public static User createUser() {
+        User user = new User();
+        user.setAge(1);
+        user.setName("静态工厂初始化bean");
+        return user;
+    }
+
     public int getAge() {
         return age;
     }

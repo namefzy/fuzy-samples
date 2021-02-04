@@ -11,7 +11,7 @@
         <property name="name" value="小马哥"/>
     </bean>
     <!--注意:class是StudentFactoryBean而不是Student-->
-    <bean id="student" class="com.example.fuzy.spring.ioc.factorybean.UserFactoryBean">
+    <bean id="userFactory" class="com.example.fuzy.spring.ioc.factorybean.UserFactoryBean">
         <property ref="user" name="user"/>
     </bean>
 </beans>

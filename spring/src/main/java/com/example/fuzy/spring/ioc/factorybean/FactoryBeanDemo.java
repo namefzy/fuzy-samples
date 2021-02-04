@@ -20,9 +20,9 @@ public class FactoryBeanDemo {
     */
     public static void main(String[] args) throws Exception {
         ApplicationContext applicationContext = new ClassPathXmlApplicationContext("META-INF\\FactoryBean.xml");
-        User student = (User) applicationContext.getBean("student");
+        User student = (User) applicationContext.getBean("userFactory");
         System.out.println(student);
-        UserFactoryBean bean = (UserFactoryBean) applicationContext.getBean("&student");
+        UserFactoryBean bean = (UserFactoryBean) applicationContext.getBean("&userFactory");
         System.out.println(bean);
         User object = bean.getObject();
         System.out.println(student==object);
