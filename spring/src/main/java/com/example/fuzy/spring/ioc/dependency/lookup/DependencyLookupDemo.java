@@ -2,6 +2,7 @@ package com.example.fuzy.spring.ioc.dependency.lookup;
 
 import com.example.fuzy.spring.ioc.dependency.lookup.annotation.Super;
 import com.example.fuzy.spring.ioc.dependency.lookup.domain.Parent;
+import com.example.fuzy.spring.ioc.dependency.lookup.domain.User;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.HierarchicalBeanFactory;
 import org.springframework.beans.factory.ListableBeanFactory;
@@ -104,6 +105,14 @@ public class DependencyLookupDemo {
     @Bean
     public String helloWorld(){
         return "Hello,World";
+    }
+
+    @Bean
+    public User user(){
+        User user = new User();
+        user.setId(1);
+        user.setName("fuzy");
+        return user;
     }
 
     /**

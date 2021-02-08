@@ -12,6 +12,11 @@
 
 <!--    <context:component-scan base-package="org.acme" />-->
 
+    <bean id="user" class="com.example.fuzy.spring.ioc.dependency.lookup.domain.User">
+        <property name="id" value="1"/>
+        <property name="name" value="fuzy"/>
+    </bean>
+
     <!-- Root BeanDefinition 不需要合并，不存在 parent -->
     <!-- 普通 beanDefinition GenericBeanDefinition -->
     <!-- 经过合并后 GenericBeanDefinition 变成 RootBeanDefinition -->
