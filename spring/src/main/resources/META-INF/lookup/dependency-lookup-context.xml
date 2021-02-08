@@ -8,24 +8,20 @@
         http://www.springframework.org/schema/context
         https://www.springframework.org/schema/context/spring-context.xsd">
 
-    <!--    <context:annotation-config/>-->
+<!--    <context:annotation-config/>-->
 
-    <!--    <context:component-scan base-package="org.acme" />-->
+<!--    <context:component-scan base-package="org.acme" />-->
 
     <!-- Root BeanDefinition 不需要合并，不存在 parent -->
     <!-- 普通 beanDefinition GenericBeanDefinition -->
     <!-- 经过合并后 GenericBeanDefinition 变成 RootBeanDefinition -->
-    <bean id="user" class="com.example.fuzy.spring.model.User">
-        <property name="age" value="1"/>
-        <property name="name" value="小马哥"/>
+    <bean id="parent" class="com.example.fuzy.spring.ioc.dependency.lookup.domain.Parent">
+        <property name="id" value="1"/>
+        <property name="name" value="fuzy"/>
     </bean>
 
-    <bean id="superUser" class="com.example.fuzy.spring.model.SonUser" parent="user"
-          primary="true">
-        <property name="address" value="杭州"/>
-    </bean>
-    <bean id="objectFactory" class="org.springframework.beans.factory.config.ObjectFactoryCreatingFactoryBean">
-        <property name="targetBeanName" value="user"/>
+    <bean id="son" class="com.example.fuzy.spring.ioc.dependency.lookup.domain.Son" parent="parent" primary="true">
+        <property name="address" value="上海"/>
     </bean>
 
 </beans>

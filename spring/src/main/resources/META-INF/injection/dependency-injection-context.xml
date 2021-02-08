@@ -7,16 +7,19 @@
         http://www.springframework.org/schema/util https://www.springframework.org/schema/util/spring-util.xsd">
 
     <!-- 通过导入复用 dependency-lookup-context.xml -->
-    <import resource="dependency-lookup-context.xml"/>
+    <import resource="classpath:/META-INF/lookup/dependency-lookup-context.xml"/>
 
-    <bean id="userRepository" class="com.example.fuzy.spring.ioc.UserRepository"
-          autowire="byName"> <!-- Auto-Wiring -->
+    <bean id="objectFactory" class="org.springframework.beans.factory.config.ObjectFactoryCreatingFactoryBean">
+        <property name="targetBeanName" value="parent"/>
+    </bean>
+
+    <bean id="userRepository" class="com.example.fuzy.spring.ioc.dependency.injection.repository.UserRepository"
+          autowire="byType"> <!-- Auto-Wiring -->
                 <property name="users">
                     <util:list>
-                        <ref bean="superUser" />
-                        <ref bean="user" />
+                        <ref bean="son" />
+                        <ref bean="parent" />
                     </util:list>
                 </property>
-
     </bean>
 </beans>

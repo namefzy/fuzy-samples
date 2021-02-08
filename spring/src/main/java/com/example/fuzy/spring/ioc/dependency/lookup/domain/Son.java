@@ -1,6 +1,6 @@
-package com.example.fuzy.spring.model;
+package com.example.fuzy.spring.ioc.dependency.lookup.domain;
 
-import com.example.fuzy.spring.annotation.Super;
+import com.example.fuzy.spring.ioc.dependency.lookup.annotation.Super;
 
 /**
  * @author fuzy
@@ -8,10 +8,10 @@ import com.example.fuzy.spring.annotation.Super;
  * @Description
  * @company 上海有分科技发展有限公司
  * @email fuzy@ufen.cn
- * @date 2021/2/2 17:49
+ * @date 2021/2/7 10:54
  */
 @Super
-public class SonUser extends User{
+public class Son extends Parent{
 
     private String address;
 
@@ -23,9 +23,10 @@ public class SonUser extends User{
         this.address = address;
     }
 
+
     @Override
     public String toString() {
-        return "SonUser{" +
+        return "Son{" +
                 "address='" + address + '\'' +
                 "} " + super.toString();
     }

@@ -1,6 +1,6 @@
-package com.example.fuzy.spring.ioc;
+package com.example.fuzy.spring.ioc.dependency.injection.repository;
 
-import com.example.fuzy.spring.model.User;
+import com.example.fuzy.spring.ioc.dependency.lookup.domain.Parent;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.context.ApplicationContext;
@@ -8,24 +8,26 @@ import org.springframework.context.ApplicationContext;
 import java.util.Collection;
 
 /**
- * @ClassName UserRepository
- * @Description TODO
- * @Author fuzy
- * @Date 2021/2/3 22:28
- * @Version 1.0
+ * @author fuzy
+ * @version 1.0
+ * @Description
+ * @company 上海有分科技发展有限公司
+ * @email fuzy@ufen.cn
+ * @date 2021/2/7 17:47
  */
 public class UserRepository {
-    private Collection<User> users; // 自定义 Bean
+
+    private Collection<Parent> users; // 自定义 Bean
 
     private BeanFactory beanFactory; // 內建非 Bean 对象（依赖）
 
     private ObjectFactory<ApplicationContext> objectFactory;
 
-    public Collection<User> getUsers() {
+    public Collection<Parent> getUsers() {
         return users;
     }
 
-    public void setUsers(Collection<User> users) {
+    public void setUsers(Collection<Parent> users) {
         this.users = users;
     }
 

@@ -1,4 +1,4 @@
-package com.example.fuzy.spring.model;
+package com.example.fuzy.spring.ioc.dependency.lookup.factorybean;
 
 /**
  * @author fuzy
@@ -6,27 +6,20 @@ package com.example.fuzy.spring.model;
  * @Description
  * @company 上海有分科技发展有限公司
  * @email fuzy@ufen.cn
- * @date 2021/2/2 11:40
+ * @date 2021/2/8 16:29
  */
-public class User {
+public class Student {
 
-    private int age;
+    private int id;
 
     private String name;
 
-    public static User createUser() {
-        User user = new User();
-        user.setAge(1);
-        user.setName("静态工厂初始化bean");
-        return user;
+    public int getId() {
+        return id;
     }
 
-    public int getAge() {
-        return age;
-    }
-
-    public void setAge(int age) {
-        this.age = age;
+    public void setId(int id) {
+        this.id = id;
     }
 
     public String getName() {
@@ -40,7 +33,7 @@ public class User {
     @Override
     public String toString() {
         return "User{" +
-                "age=" + age +
+                "id=" + id +
                 ", name='" + name + '\'' +
                 '}';
     }
