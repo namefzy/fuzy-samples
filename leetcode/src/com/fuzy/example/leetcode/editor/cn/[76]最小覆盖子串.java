@@ -46,6 +46,59 @@ import java.util.concurrent.TimeUnit;
 
 //leetcode submit region begin(Prohibit modification and deletion)
 class Solution93 {
+
+    public String minWindow2(String s,String t){
+        if (s == null || s == "" || t == null || t == "" || s.length() < t.length()) {
+            return "";
+        }
+        //维护两个数组，记录已有字符串指定字符的出现次数，和目标字符串指定字符的出现次数
+        //ASCII表总长128
+        int[] need = new int[128];
+        int[] have = new int[128];
+
+        //将目标字符串指定字符的出现次数记录
+        for (int i = 0; i < t.length(); i++) {
+            need[t.charAt(i)]++;
+        }
+        int left = 0,right =0,min=s.length()+1,count = 0,start=0;
+        while (right<s.length()){
+            char r = s.charAt(right);
+            if(need[r]==0){
+                right++;
+                continue;
+            }
+            if(have[r]<need[r]){
+                count++;
+            }
+            have[r]++;
+            right++;
+            while (count==t.length()){
+                if(right-left<min){
+                    min = right - left;
+                    start = left;
+                }
+                char l = s.charAt(left);
+                if(need[l]==0){
+                    left++;
+                    continue;
+                }
+                if(have[l]==need[l]){
+                    count--;
+                }
+                //已有字符串中目标字符出现的次数-1
+                have[l]--;
+                //移动左指针
+                left++;
+            }
+        }
+        //如果最小长度还为初始值，说明没有符合条件的子串
+        if (min == s.length() + 1) {
+            return "";
+        }
+        //返回的为以记录的起始位置为起点，记录的最短长度为距离的指定字符串中截取的子串
+        return s.substring(start, start + min);
+    }
+
     public String minWindow1(String s, String t) {
         Map<Character,Integer> need = new HashMap<>();
         Map<Character,Integer> windows = new HashMap<>();
@@ -114,6 +167,8 @@ class Solution93 {
         //分别为左指针，右指针，最小长度(初始值为一定不可达到的长度)
         //已有字符串中目标字符串指定字符的出现总频次以及最小覆盖子串在原字符串中的起始位置
         int left = 0, right = 0, min = s.length() + 1, count = 0, start = 0;
+
+        //s = "ADOBECODEBANC", t = "ABC"
         while (right < s.length()) {
             char r = s.charAt(right);
             //说明该字符不被目标字符串需要，此时有两种情况
