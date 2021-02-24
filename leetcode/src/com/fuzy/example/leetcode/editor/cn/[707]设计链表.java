@@ -45,7 +45,7 @@ import java.util.List;
 //leetcode submit region begin(Prohibit modification and deletion)
 class MyLinkedList {
 
-    private List<Integer> list = new ArrayList<>();
+    private final List<Integer> list = new ArrayList<>();
 
     /** Initialize your data structure here. */
     public MyLinkedList() {
