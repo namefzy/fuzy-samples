@@ -21,6 +21,21 @@ import java.util.Map;
 
 //leetcode submit region begin(Prohibit modification and deletion)
 class Solution56 {
+
+    public int[] towSum2(int[] nums,int target){
+        Map<Integer,Integer> map = new HashMap<>();
+        for (int i = 0; i < nums.length; i++) {
+            map.put(nums[i],i);
+        }
+        for (int i = 0; i < nums.length; i++) {
+            int temp = target-nums[i];
+            if(map.containsKey(temp)&&map.get(temp)!=i){
+                return new int[]{i,map.get(temp)};
+            }
+        }
+        throw new IllegalArgumentException("No two sum solution");
+    }
+
     public int[] twoSum1(int[] nums,int target){
         int[] arr = new int[2];
         for (int i = 0; i < nums.length; i++) {

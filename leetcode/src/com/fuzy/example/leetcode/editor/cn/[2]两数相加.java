@@ -21,86 +21,87 @@ import java.util.List;
 /**
  * Definition for singly-linked list.
  * public class ListNode {
- *     int val;
- *     ListNode next;
- *     ListNode() {}
- *     ListNode(int val) { this.val = val; }
- *     ListNode(int val, ListNode next) { this.val = val; this.next = next; }
+ * int val;
+ * ListNode next;
+ * ListNode() {}
+ * ListNode(int val) { this.val = val; }
+ * ListNode(int val, ListNode next) { this.val = val; this.next = next; }
  * }
  */
 class Solution67 {
 
-    public ListNode addTwoNumbers2(ListNode l1,ListNode l2){
-        ListNode node = new ListNode(-1);
-        ListNode pre = node;
-        int flag = 0;
+
+
+    public static ListNode addTwoNumbers2(ListNode l1, ListNode l2) {
+
+        ListNode pre = new ListNode(-1),tail = pre;
+        int carry = 0;
+
         while (l1!=null||l2!=null){
-            int a = l1==null?0:l1.val;
-            int b = l2==null?0:l2.val;
-            int sum = a+b+flag;
-            node.next = new ListNode(sum%10);
-            if(sum>=10){
-                flag = 1;
-            }else{
-                flag = 0;
-            }
-            if(l1!=null){
+            //计算个位数
+            int p1 = l1==null?0:l1.val;
+            int p2 = l2==null?0:l2.val;
+            int sum = (p1+p2+carry)%10;
+            carry = (p1+p2+carry)/10;
+            pre.next=new ListNode(sum);
+            pre = pre.next;
+            if(l2==null){
                 l1 = l1.next;
-            }
-            if(l2!=null){
+            }else if(l1==null){
+                l2 = l2.next;
+            }else{
+                l1 = l1.next;
                 l2 = l2.next;
             }
-            node = node.next;
         }
-
-        if(flag==1){
-            node.next = new ListNode(1);
+        if(carry==1){
+            pre.next = new ListNode(1);
         }
-        return pre.next;
+        return tail.next;
     }
 
     //题目看错了的解法
-    public static ListNode addTwoNumbers1(ListNode l1, ListNode l2){
+    public static ListNode addTwoNumbers1(ListNode l1, ListNode l2) {
         ListNode p1 = reverse(l1);
         ListNode p2 = reverse(l2);
         ListNode sentinel = new ListNode();
         int flag = 0;
-        while (p1!=null||p2!=null){
-            if(p1==null){
-                if(p2.val+flag>=10){
-                    sentinel.next = new ListNode((p2.val+flag)%10);
+        while (p1 != null || p2 != null) {
+            if (p1 == null) {
+                if (p2.val + flag >= 10) {
+                    sentinel.next = new ListNode((p2.val + flag) % 10);
                     flag = 1;
-                }else{
-                    sentinel.next = new ListNode(p2.val+flag);
+                } else {
+                    sentinel.next = new ListNode(p2.val + flag);
                     flag = 0;
                 }
 
-                p2=p2.next;
-            }else if(p2==null){
-                if(p1.val+flag>=10){
-                    sentinel.next = new ListNode((p1.val+flag)%10);
+                p2 = p2.next;
+            } else if (p2 == null) {
+                if (p1.val + flag >= 10) {
+                    sentinel.next = new ListNode((p1.val + flag) % 10);
                     flag = 1;
-                }else{
-                    sentinel.next = new ListNode(p1.val+flag);
+                } else {
+                    sentinel.next = new ListNode(p1.val + flag);
                     flag = 0;
                 }
-                p1=p1.next;
-            }else{
-                if(p1.val+p2.val+flag>=10){
-                    sentinel.next = new ListNode((p1.val+p2.val+flag)%10);
+                p1 = p1.next;
+            } else {
+                if (p1.val + p2.val + flag >= 10) {
+                    sentinel.next = new ListNode((p1.val + p2.val + flag) % 10);
                     flag = 1;
-                }else{
-                    sentinel.next = new ListNode(p1.val+p2.val+flag);
+                } else {
+                    sentinel.next = new ListNode(p1.val + p2.val + flag);
                     flag = 0;
                 }
-                p1=p1.next;
-                p2=p2.next;
+                p1 = p1.next;
+                p2 = p2.next;
             }
 
             sentinel = sentinel.next;
 
         }
-        if(flag == 1){
+        if (flag == 1) {
             sentinel.next = new ListNode(1);
         }
         return sentinel.next;
@@ -119,13 +120,13 @@ class Solution67 {
         listNode3.next = listNode31;
         listNode31.next = listNode32;
 
-        addTwoNumbers1(listNode,listNode3);
+        addTwoNumbers2(listNode, listNode3);
     }
 
     private static ListNode reverse(ListNode node) {
         ListNode pre = null;
         ListNode cur = node;
-        while (cur!=null){
+        while (cur != null) {
             ListNode temp = cur.next;
             cur.next = pre;
             pre = cur;
@@ -136,37 +137,47 @@ class Solution67 {
 
 
     public ListNode addTwoNumbers(ListNode l1, ListNode l2) {
-        ListNode head = null,tail = null;
+        ListNode head = null, tail = null;
         int carry = 0;
-        while (l1!=null||l2!=null){
-            int x = l1!=null?l1.val:0;
-            int y = l2!=null?l2.val:0;
-            int sum = x+y+carry;
-            carry = sum/10;
-            sum = sum%10;
-            if(head ==null ){
+        while (l1 != null || l2 != null) {
+            int x = l1 != null ? l1.val : 0;
+            int y = l2 != null ? l2.val : 0;
+            int sum = x + y + carry;
+            carry = sum / 10;
+            sum = sum % 10;
+            if (head == null) {
                 head = tail = new ListNode(sum);
-            }else{
+            } else {
                 tail.next = new ListNode(sum);
             }
-            if(l1!=null){
+            if (l1 != null) {
                 l1 = l1.next;
             }
-            if(l2!=null){
+            if (l2 != null) {
                 l2 = l2.next;
             }
         }
-        if(carry == 1){
+        if (carry == 1) {
             tail.next = new ListNode(carry);
         }
         return head;
     }
-public static class ListNode {
-    int val;
-    ListNode next;
-    ListNode() {}
-    ListNode(int val) { this.val = val; }
-    ListNode(int val, ListNode next) { this.val = val; this.next = next; }
-}
+
+    public static class ListNode {
+        int val;
+        ListNode next;
+
+        ListNode() {
+        }
+
+        ListNode(int val) {
+            this.val = val;
+        }
+
+        ListNode(int val, ListNode next) {
+            this.val = val;
+            this.next = next;
+        }
+    }
 }
 //leetcode submit region end(Prohibit modification and deletion)

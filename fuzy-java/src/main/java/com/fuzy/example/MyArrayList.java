@@ -182,4 +182,30 @@ public class MyArrayList<E> extends AbstractList<E> {
         }
     }
 
+    public static void main(String[] args) {
+        List<String> list = new ArrayList<>();
+        list.add("1");
+        list.add("3");
+        list.add("2");
+        for (int i = 0; i < list.size(); i++) {
+            if(list.get(i).equals("1")){
+                list.remove(i);
+            }
+        }
+        //增强for调用了迭代器的方法
+        for (String s : list) {
+            if(s.equals("1")){
+                list.remove(0);
+            }
+        }
+
+        Iterator<String> iterator = list.iterator();
+        while (iterator.hasNext()){
+            String next = iterator.next();
+            if(next.equals("1")){
+                iterator.remove();
+            }
+        }
+        System.out.println(list);
+    }
 }

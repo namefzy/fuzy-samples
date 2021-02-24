@@ -43,7 +43,7 @@ import java.util.Map;
  * TreeNode(int x) { val = x; }
  * }
  */
-class Solution157 {
+class Solution160 {
     public int[] findMode(TreeNode root) {
         Map<Integer,Integer> map = new HashMap<>();
         helper(root,map);
