@@ -29,10 +29,7 @@ package com.fuzy.example.leetcode.editor.cn;//给定一个有相同值的二叉�
 
 //leetcode submit region begin(Prohibit modification and deletion)
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Definition for a binary tree node.
@@ -44,25 +41,34 @@ import java.util.Map;
  * }
  */
 class Solution160 {
+
     public int[] findMode(TreeNode root) {
         Map<Integer,Integer> map = new HashMap<>();
         helper(root,map);
-        int[] array = new int[map.size()];
-        Arrays.fill(array,0);
-        int i = 0;
 
-        int max = 0;
-        //map中取出值最大的一部分集合
+        /**
+         * 求map中value最大的值,可能存在多个相同的众数 []
+         */
+        int maxCount = 0;
+        List<Integer> list = new ArrayList<>();
         for (Map.Entry<Integer, Integer> entry : map.entrySet()) {
             Integer key = entry.getKey();
             Integer value = entry.getValue();
-            if(max<=value){
-               max = value;
-               array[i++] = key;
+            //如果统计的值大于count
+            if(value>maxCount){
+                maxCount = value;
+                list.clear();
+                list.add(key);
+            }else if(value == maxCount){
+                //如果等于最大值
+                list.add(key);
             }
         }
-        Arrays.sort(array);
-        return array;
+        int[] arrays = new int[list.size()];
+        for (int j = 0; j < list.size(); j++) {
+            arrays[j] = list.get(j);
+        }
+        return arrays;
     }
 
     private void helper(TreeNode root, Map<Integer,Integer> map) {
