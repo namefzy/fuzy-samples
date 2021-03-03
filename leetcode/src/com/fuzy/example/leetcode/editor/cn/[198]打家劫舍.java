@@ -46,13 +46,13 @@ class Solution79 {
         if(nums.length==1){
             return nums[0];
         }
-        int[] nums1 = new int[nums.length];
-        nums1[0] = nums[0];
-        nums1[1] = Math.max(nums[0],nums[1]);
+        int[] dp = new int[nums.length];
+        dp[0] = nums[0];
+        dp[1] = Math.max(nums[0],nums[1]);
         for (int i = 2; i < nums.length; i++) {
-            nums1[i] = Math.max(nums1[i-2]+nums[i],nums1[i-1]);
+            dp[i] = Math.max(dp[i-2]+nums[i],dp[i-1]);
         }
-        return nums1[nums.length-1];
+        return dp[nums.length-1];
     }
 }
 //leetcode submit region end(Prohibit modification and deletion)
