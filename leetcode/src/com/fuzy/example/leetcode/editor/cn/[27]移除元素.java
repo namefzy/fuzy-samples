@@ -51,6 +51,17 @@ package com.fuzy.example.leetcode.editor.cn;//给你一个数组 nums 和一个�
 
 //leetcode submit region begin(Prohibit modification and deletion)
 class Solution03 {
+    public int removeElement1(int[] nums,int val){
+        int j = 0;
+        for (int i = 0; i < nums.length; i++) {
+            if(nums[i]!=val){
+                int temp = nums[i];
+                nums[i] = nums[j];
+                nums[j++] = temp;
+            }
+        }
+        return j;
+    }
     public int removeElement(int[] nums, int val) {
         int q = 0;
         for (int i = 0; i < nums.length;i++) {
