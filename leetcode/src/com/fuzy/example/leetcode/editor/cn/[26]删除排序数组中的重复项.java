@@ -1,4 +1,5 @@
-package com.fuzy.example.leetcode.editor.cn;//给定一个排序数组，你需要在 原地 删除重复出现的元素，使得每个元素只出现一次，返回移除后数组的新长度。
+package com.fuzy.example.leetcode.editor.cn;
+//给定一个排序数组，你需要在 原地 删除重复出现的元素，使得每个元素只出现一次，返回移除后数组的新长度。
 //
 // 不要使用额外的数组空间，你必须在 原地 修改输入数组 并在使用 O(1) 额外空间的条件下完成。 
 //
@@ -19,7 +20,9 @@ package com.fuzy.example.leetcode.editor.cn;//给定一个排序数组，你需�
 //函数应该返回新的长度 5, 并且原数组 nums 的前五个元素被修改为 0, 1, 2, 3, 4。
 //
 //你不需要考虑数组中超出新长度后面的元素。
-// 
+//  0 0 1 1 1 2 2 3 3 4
+// i->0
+// j->1
 //
 // 
 //
@@ -47,8 +50,17 @@ package com.fuzy.example.leetcode.editor.cn;//给定一个排序数组，你需�
 //leetcode submit region begin(Prohibit modification and deletion)
 class Solution04 {
     public int removeDuplicates(int[] nums) {
-
-        return 0;
+        if (nums.length == 0) return 0;
+        int i = 0;
+        for (int j = 1; j < nums.length; j++) {
+            if (nums[j] != nums[i]) {
+                i++;
+                nums[i] = nums[j];
+            }
+        }
+        return i+1;
     }
+
+
 }
 //leetcode submit region end(Prohibit modification and deletion)
