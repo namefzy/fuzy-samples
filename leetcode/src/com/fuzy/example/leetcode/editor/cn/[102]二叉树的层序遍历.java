@@ -43,6 +43,13 @@ import java.util.List;
  */
 class Solution126 {
 
+    public List<List<Integer>> levelOrder2(TreeNode root){
+
+
+        return null;
+    }
+
+
     public List<List<Integer>> levelOrder1(TreeNode root) {
         if(root==null) {
             return new ArrayList<List<Integer>>();
