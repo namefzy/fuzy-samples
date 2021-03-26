@@ -55,7 +55,10 @@ package com.fuzy.example.leetcode.editor.cn;//运用你所掌握的数据结构�
 // 👍 1278 👎 0
 
 
+import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
 
 //leetcode submit region begin(Prohibit modification and deletion)
 class LRUCache146 {
@@ -78,6 +81,38 @@ class LRUCache146 {
     
     public void put(int key, int value) {
         linkedHashMap.put(key,value);
+        if(linkedHashMap.size()>capacity){
+            Set<Map.Entry<Integer, Integer>> entries = linkedHashMap.entrySet();
+            Iterator<Map.Entry<Integer, Integer>> iterator = entries.iterator();
+            Integer key1 = null;
+            while (iterator.hasNext()){
+                key1 = iterator.next().getKey();
+                break;
+            }
+            linkedHashMap.remove(key1);
+        }
+
+    }
+
+    public static void main(String[] args) {
+        LinkedHashMap<String,String> map = new LinkedHashMap<>(2,1f,true);
+        map.put("1","1");
+        map.put("2","2");
+        map.put("3","3");
+        System.out.println(map.get("1"));
+        Set<Map.Entry<String, String>> entries = map.entrySet();
+        Iterator<Map.Entry<String, String>> iterator = entries.iterator();
+        while (iterator.hasNext()){
+            iterator.remove();
+            break;
+        }
+
+
+
+
+        for (Map.Entry o : map.entrySet()) {
+            System.out.println(o.getValue());
+        }
     }
 }
 
