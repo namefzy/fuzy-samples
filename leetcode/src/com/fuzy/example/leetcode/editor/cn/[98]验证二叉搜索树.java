@@ -22,9 +22,9 @@ package com.fuzy.example.leetcode.editor.cn;//给定一个二叉树，判断其�
 // 输入:
 //    5
 //   / \
-//  1   4
+//  4   6
 //     / \
-//    3   6
+//    3   7
 //输出: false
 //解释: 输入为: [5,1,4,null,null,3,6]。
 //     根节点的值为 5 ，但是其右子节点值为 4 。
@@ -52,10 +52,37 @@ package com.fuzy.example.leetcode.editor.cn;//给定一个二叉树，判断其�
  */
 class Solution109 {
     public boolean isValidBST(TreeNode root) {
-         return helper(root,null,null);
+
+         return helper(root);
     }
 
-    public boolean helper(TreeNode root,Integer lower,Integer upper){
+//    5
+//   / \
+//  4   6
+//     / \
+//    3   7
+    public boolean helper (TreeNode root){
+        if(root==null){
+            return true;
+        }
+        int val = root.val;
+        if(root.left!=null&&root.left.val>=val){
+            return false;
+        }
+        if(root.right!=null&&root.right.val<=val){
+            return false;
+        }
+
+        if (!helper(root.left)) {
+            return false;
+        }
+        if(!helper(root.right)){
+            return false;
+        }
+        return true;
+    }
+
+    public boolean helper1(TreeNode root,Integer lower,Integer upper){
         if(root==null){
             return true;
         }
@@ -66,10 +93,10 @@ class Solution109 {
         if(upper!=null&&val>=upper){
             return false;
         }
-        if(!helper(root.left,val,upper)){
+        if(!helper1(root.left,val,upper)){
             return false;
         }
-        if(!helper(root.right,val,upper)){
+        if(!helper1(root.right,val,upper)){
             return false;
         }
         return true;
