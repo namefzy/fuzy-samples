@@ -35,6 +35,11 @@ package com.fuzy.example.leetcode.editor.cn;//给定一个二叉树，判断其�
 
 //leetcode submit region begin(Prohibit modification and deletion)
 
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.LinkedList;
+import java.util.List;
+
 /**
  * Definition for a binary tree node.
  * public class TreeNode {
@@ -53,6 +58,28 @@ package com.fuzy.example.leetcode.editor.cn;//给定一个二叉树，判断其�
 class Solution109 {
     public boolean isValidBST(TreeNode root) {
          return helper(root,null,null);
+    }
+
+
+
+    public boolean isValidBST1(TreeNode root){
+        List<String> list = new ArrayList<>();
+
+        Deque<TreeNode> stack = new LinkedList<>();
+        double inorder = -Double.MAX_VALUE;
+        while (!stack.isEmpty()||root!=null){
+            while (root!=null){
+                stack.push(root);
+                root = root.left;
+            }
+            root = stack.pop();
+            if(root.val<=inorder){
+                return false;
+            }
+            inorder = root.val;
+            root = root.right;
+        }
+        return true;
     }
 
     public boolean helper(TreeNode root,Integer lower,Integer upper){
