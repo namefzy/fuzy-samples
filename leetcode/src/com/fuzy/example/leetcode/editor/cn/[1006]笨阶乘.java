@@ -56,16 +56,20 @@ class Solution1008 {
             return N;
         }
         int sum = 0;
+        //解释：12 = 10 * 9 / 8 + 7 - 6 * 5 / 4 + 3 - 2 * 1
+        //以10为例，每减少3个数，就相加，所以先把+号的求和
         for (int i = 0; i < N; i++) {
             if((N-i)%4==3){
                 sum+=i;
             }
         }
+        //第一次加入sum,其他的都减去
         boolean flag = true;
-        //解释：12 = 10 * 9 / 8 + 7 - 6 * 5 / 4 + 3 - 2 * 1
+
         for (int i = N; i >= 1; i--) {
-            //value的值是 10 6 2
+            //外层循环计算差值
             int value = i;
+            //内层循环计算积和商
             for (int j = 1; j <4&i>1; j++) {
                 if(j==1){
                     value *=(value-j);
