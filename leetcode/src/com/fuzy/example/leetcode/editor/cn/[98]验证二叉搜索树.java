@@ -22,9 +22,9 @@ package com.fuzy.example.leetcode.editor.cn;//给定一个二叉树，判断其�
 // 输入:
 //    5
 //   / \
-//  4   6
+//  1   4
 //     / \
-//    3   7
+//    3   6
 //输出: false
 //解释: 输入为: [5,1,4,null,null,3,6]。
 //     根节点的值为 5 ，但是其右子节点值为 4 。
@@ -34,6 +34,11 @@ package com.fuzy.example.leetcode.editor.cn;//给定一个二叉树，判断其�
 
 
 //leetcode submit region begin(Prohibit modification and deletion)
+
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Definition for a binary tree node.
@@ -52,37 +57,32 @@ package com.fuzy.example.leetcode.editor.cn;//给定一个二叉树，判断其�
  */
 class Solution109 {
     public boolean isValidBST(TreeNode root) {
-
-         return helper(root);
+         return helper(root,null,null);
     }
 
-//    5
-//   / \
-//  4   6
-//     / \
-//    3   7
-    public boolean helper (TreeNode root){
-        if(root==null){
-            return true;
-        }
-        int val = root.val;
-        if(root.left!=null&&root.left.val>=val){
-            return false;
-        }
-        if(root.right!=null&&root.right.val<=val){
-            return false;
-        }
 
-        if (!helper(root.left)) {
-            return false;
-        }
-        if(!helper(root.right)){
-            return false;
+
+    public boolean isValidBST1(TreeNode root){
+        List<String> list = new ArrayList<>();
+
+        Deque<TreeNode> stack = new LinkedList<>();
+        double inorder = -Double.MAX_VALUE;
+        while (!stack.isEmpty()||root!=null){
+            while (root!=null){
+                stack.push(root);
+                root = root.left;
+            }
+            root = stack.pop();
+            if(root.val<=inorder){
+                return false;
+            }
+            inorder = root.val;
+            root = root.right;
         }
         return true;
     }
 
-    public boolean helper1(TreeNode root,Integer lower,Integer upper){
+    public boolean helper(TreeNode root,Integer lower,Integer upper){
         if(root==null){
             return true;
         }
@@ -93,10 +93,10 @@ class Solution109 {
         if(upper!=null&&val>=upper){
             return false;
         }
-        if(!helper1(root.left,val,upper)){
+        if(!helper(root.left,val,upper)){
             return false;
         }
-        if(!helper1(root.right,val,upper)){
+        if(!helper(root.right,val,upper)){
             return false;
         }
         return true;

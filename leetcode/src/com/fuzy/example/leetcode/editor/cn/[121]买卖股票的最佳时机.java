@@ -29,7 +29,25 @@ import javax.swing.*;
 
 //leetcode submit region begin(Prohibit modification and deletion)
 class Solution20 {
-    public int maxProfit(int[] prices) {
+    public int maxProfix8(int[] prices){
+        if(prices.length<=1){
+            return 0;
+        }
+        //2代表两种状态：0-未持有，1-持有
+        int[][] dbs = new int[prices.length][2];
+        //第一天不持有
+        dbs[0][0] = 0;
+        dbs[0][1] = -prices[0];
+        for (int i = 1; i < prices.length; i++) {
+            //第i天不持有,应该等于前一天持有和今天卖出这两者的最大值
+            dbs[i][0] = Math.max(dbs[i][i-1]+prices[i],dbs[i-1][0]);
+            dbs[i][1] = Math.max(dbs[i-1][1],dbs[i-1][0]-prices[0]);
+        }
+        return dbs[prices.length-1][0];
+    }
+
+
+    public int maxProfit7(int[] prices) {
        //先确定最大值
         int length = prices.length;
         int res = 0;

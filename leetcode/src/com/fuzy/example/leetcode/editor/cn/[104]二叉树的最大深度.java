@@ -30,13 +30,39 @@ package com.fuzy.example.leetcode.editor.cn;//给定一个二叉树，找出其�
  * }
  */
 class Solution16 {
+
+
+
+    private int answer = 0;
+    public int maxDepth1(TreeNode root){
+        dfs(root,1);
+        return answer;
+    }
+
+    public void dfs(TreeNode root,int depth){
+        if(root==null){
+            return;
+        }
+        if(root.left==null&&root.right==null){
+            answer = Math.max(answer,depth);
+        }
+        dfs(root.left,depth+1);
+        dfs(root.right,depth+1);
+
+    }
+
+    /**
+     * 自底向上
+     * @param root
+     * @return
+     */
     public int maxDepth(TreeNode root) {
         if(root==null){
             return 0;
         }
-        int leftDepth = maxDepth(root.left);
-        int rightDepth = maxDepth(root.right);
-        return Math.max(leftDepth,rightDepth)+1;
+        int left = maxDepth(root.left);
+        int right = maxDepth(root.right);
+        return Math.max(left,right)+1;
     }
 
     public class TreeNode {

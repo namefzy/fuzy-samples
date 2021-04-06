@@ -25,6 +25,34 @@ package com.fuzy.example.leetcode.editor.cn;//给你两个有序整数数组 num
 //leetcode submit region begin(Prohibit modification and deletion)
 class Solution12 {
 
+    /**
+     * 从后往前
+     * @param nums1
+     * @param m
+     * @param nums2
+     * @param n
+     */
+    public void merge3(int[] nums1,int m,int[] nums2,int n){
+        int p1 = m - 1;
+        int p2 = n - 1;
+        // set pointer for nums1
+        int p = m + n - 1;
+
+        //如果p1<0；p2中所有的元素需要移到nums1的前面
+        //如果p2<0;说明p2中的所有元素都大于p1剩余的元素
+        // while there are still elements to compare
+        while ((p1 >= 0) && (p2 >= 0)){
+            // compare two elements from nums1 and nums2
+            // and add the largest one in nums1
+            nums1[p--] = (nums1[p1] < nums2[p2]) ? nums2[p2--] : nums1[p1--];
+        }
+
+        // add missing elements from nums2
+        System.arraycopy(nums2, 0, nums1, 0, p2 + 1);
+
+
+    }
+
     public void merge2(int[] nums1, int m, int[] nums2, int n){
         int a = 0;
         int b = 0;

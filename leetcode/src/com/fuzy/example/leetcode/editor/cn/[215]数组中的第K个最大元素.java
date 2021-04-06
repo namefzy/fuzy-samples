@@ -21,13 +21,18 @@ package com.fuzy.example.leetcode.editor.cn;
 
 //leetcode submit region begin(Prohibit modification and deletion)
 class Solution78 {
+
+    public static void main(String[] args) {
+        int[] nums = new int[]{3,2,1,6,5,4};
+        findKthLargest(nums,2);
+    }
     /**
      * 分治算法
      * @param nums
      * @param k
      * @return
      */
-    public int findKthLargest(int[] nums, int k) {
+    public static int findKthLargest(int[] nums, int k) {
         int len = nums.length;
         int left = 0;
         int right = len-1;
@@ -45,23 +50,34 @@ class Solution78 {
         }
     }
 
-    private int partition(int[] nums, int left, int right) {
+    /**
+     *
+     * @param nums
+     * @param left
+     * @param right
+     * @return
+     */
+    private static int partition(int[] nums, int left, int right) {
         int pivot = nums[left];
         //j在该方法中的值是找出几个比nums[left]小的值
         int j = left;
+        //例如数组 3 2 1 6 5 4
         for (int i = left+1; i <=right; i++) {
             if(nums[i]<pivot){
                 j++;
                 //交互j和i位置
                 swap(nums,j,i);
+
             }
         }
+        //for循环处理后是2 1 3 6 5 4
         //交换j和left的值，将比left小的值放到left的左边
+        //交换j和left的值后是 3 1 2 6 5 4
         swap(nums,j,left);
         return j;
     }
 
-    private void swap(int[] nums, int index1, int index2) {
+    private static void swap(int[] nums, int index1, int index2) {
         int temp = nums[index1];
         nums[index1] = nums[index2];
         nums[index2] = temp;

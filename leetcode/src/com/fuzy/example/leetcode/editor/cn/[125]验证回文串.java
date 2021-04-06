@@ -24,6 +24,30 @@ class Solution38 {
         boolean palindrome = isPalindrome("race a car");
         System.out.println(palindrome);
     }
+
+    public boolean isPalindrome1(String s){
+        StringBuffer sgood = new StringBuffer();
+        int length = s.length();
+        for (int i = 0; i < length; i++) {
+            char ch = s.charAt(i);
+            if (Character.isLetterOrDigit(ch)) {
+                sgood.append(Character.toLowerCase(ch));
+            }
+        }
+        int n = sgood.length();
+        int left = 0;
+        int right = n-1;
+        char[] chars = sgood.toString().toCharArray();
+        while(left<right){
+            if(Character.toLowerCase(chars[left])!=Character.toLowerCase(chars[right])){
+                return false;
+            }
+            left++;
+            right--;
+        }
+        return true;
+    }
+
     public  static boolean isPalindrome(String s) {
         StringBuffer sgood = new StringBuffer();
         int length = s.length();
