@@ -49,6 +49,28 @@ import java.util.*;
  */
 class Solution83 {
     List<Integer> vals;
+
+    private int ans = Integer.MAX_VALUE;
+
+    private TreeNode prev;
+
+    public int minDiffInBST2(TreeNode root){
+        dfs1(root);
+        return ans;
+    }
+
+    private void dfs1(TreeNode root){
+        if(root==null){
+            return;
+        }
+        dfs1(root.left);
+        if(prev!=null){
+            ans = Math.min(ans,root.val-prev.val);
+        }
+        prev = root;
+        dfs1(root.left);
+    }
+
     public int minDiffInBST(TreeNode root) {
         vals = new ArrayList();
         dfs(root);
