@@ -16,8 +16,6 @@
     <modules>
         <module>spring-cloud-alibaba-dubbo-samples</module>
         <module>spring-cloud-alibaba-dubbo-samples/dubbo-spi</module>
-        <module>spring-cloud-alibaba-nacos-samples</module>
-        <module>spring-cloud-alibaba-nacos-samples/nacos-config</module>
     </modules>
 
 </project>
