@@ -14,10 +14,11 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 public class UserFactoryBeanDemo {
 
     public static void main(String[] args) throws Exception {
-        ApplicationContext applicationContext = new ClassPathXmlApplicationContext("META-INF\\student-factory-bean.xml");
+        ApplicationContext applicationContext = new ClassPathXmlApplicationContext("META-INF/lookup/student-factory-bean.xml");
         Student student = (Student) applicationContext.getBean("studentFactoryBean");
         System.out.println("普通方式获取Bean:"+student);
         StudentFactoryBean bean = (StudentFactoryBean) applicationContext.getBean("&studentFactoryBean");
+        System.out.println("获取到FactoryBean是代理对象："+bean);
         Student object = bean.getObject();
         System.out.println("通过factoryBean获取"+object);
         System.out.println(student==object);
