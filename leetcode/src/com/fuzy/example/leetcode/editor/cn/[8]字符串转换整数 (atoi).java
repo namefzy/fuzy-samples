@@ -65,10 +65,40 @@ package com.fuzy.example.leetcode.editor.cn;
 //leetcode submit region begin(Prohibit modification and deletion)
 class Solution71 {
     public static void main(String[] args) {
-        String s = "-91283472332";
+        String s = "+1";
         System.out.println(myAtoi(s));
         System.out.println(Integer.MIN_VALUE);
     }
+    public int myAtoi1(String s){
+        s = s.trim();
+        if(s.length()==0){
+            return 0;
+
+        }
+        int i = 0;
+        if(!Character.isDigit(s.charAt(i))&&s.charAt(i)!='-'&&s.charAt(i)!='+'){
+            return 0;
+        }
+        boolean negative = false;
+        if(s.charAt(0)=='-'){
+            negative = true;
+            i++;
+        }
+        int result = 0;
+        while (i<s.length()&&Character.isDigit(s.charAt(i))){
+            int digit = s.charAt(i)-'0';
+            if(result>(Integer.MAX_VALUE-digit)/10){
+                return negative?Integer.MIN_VALUE:Integer.MAX_VALUE;
+            }
+            result = result * 10 + digit;
+            i++;
+
+        }
+
+
+        return negative? -result : result;
+    }
+
     public static int myAtoi(String s) {
         s = s.trim();
         if(s.length()==0){return 0;}
@@ -79,6 +109,8 @@ class Solution71 {
         boolean negative = false;
         if(s.charAt(0)=='-'){
             negative = true;
+        }
+        if(!Character.isDigit(s.charAt(i))){
             i++;
         }
         char[] chars = s.toCharArray();
@@ -93,20 +125,6 @@ class Solution71 {
             result = result * 10 + digit;
             i++;
 
-//            int r = chars[i] - '0';
-//            //如果是负数
-//            if(negative){
-//                if(result<Integer.MIN_VALUE+r/10){
-//                    return Integer.MIN_VALUE;
-//                }
-//                result = result*10-r;
-//            }else{
-//                if(result>Integer.MAX_VALUE-r/10){
-//                    return Integer.MAX_VALUE;
-//                }
-//                result = result*10+r;
-//            }
-//            i++;
         }
 
 
