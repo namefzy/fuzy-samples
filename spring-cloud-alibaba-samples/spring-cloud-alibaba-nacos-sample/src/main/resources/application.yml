@@ -1,11 +1,20 @@
 spring:
   application:
-    name: nacos-demo
+    name: nacos-demo2
   cloud:
     nacos:
       discovery:
-        server-addr: 192.168.56.102:8848
+        server-addr: 192.168.56.100:8848
         username: nacos
         password: nacos
 server:
   port: 8880
+
+#spring:
+#  application:
+#    name: mall-portal
+#  datasource:
+#    url: jdbc:mysql://127.0.0.1:3306/nacos?characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useUnicode=true&useSSL=false&serverTimezone=UTC
+#    username: root
+#    password: root
+#    driver-class-name: com.mysql.cj.jdbc.Driver

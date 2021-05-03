@@ -21,10 +21,44 @@ package com.fuzy.example.leetcode.editor.cn;
 
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 //leetcode submit region begin(Prohibit modification and deletion)
 class Solution34 {
+
+    public List<List<Integer>> generate1(int numRows) {
+        List<List<Integer>> res = new LinkedList<>();
+        helper1(res, new ArrayList<>(), numRows, 0);
+        return res;
+    }
+
+    /**
+     * 分析，对于每一层都会新建一个list,该list通过上一层的list计算而来
+     * @param res
+     * @param list
+     * @param numRows
+     * @param curr
+     */
+    public void helper1(List<List<Integer>> res, List<Integer> list, int numRows, int curr){
+        //对于每一层都有上一
+        if (curr >= numRows) {
+            return ;
+        }
+        List<Integer> list1 = new ArrayList<>();
+        for (int i = 0; i < numRows; i++) {
+            if(i==0||i==numRows-1){
+                list1.add(1);
+            }else{
+                list1.add(list.get(i-1)+list.get(i));
+            }
+
+        }
+        res.add(list1);
+        helper(res,list1,numRows,++curr);
+    }
+
+
     public static void main(String[] args) {
         List<List<Integer>> generate = generate(5);
         System.out.println(generate);

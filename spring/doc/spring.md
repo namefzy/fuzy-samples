@@ -264,6 +264,45 @@ public class AnnotationDependencyMethodInjectionDemo {
 
 ```
 
+#### 接口回调注入-实现Aware接口
+
+```java
+public class AwareInterfaceDependencyInjectionDemo implements BeanFactoryAware, ApplicationContextAware {
+
+    private static BeanFactory beanFactory;
+
+    private static ApplicationContext applicationContext;
+
+
+    public static void main(String[] args) {
+
+        // 创建 BeanFactory 容器
+        AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
+        // 注册 Configuration Class（配置类） -> Spring Bean
+        context.register(AwareInterfaceDependencyInjectionDemo.class);
+
+        // 启动 Spring 应用上下文
+        context.refresh();
+
+        System.out.println(beanFactory == context.getBeanFactory());
+        System.out.println(applicationContext == context);
+
+        // 显示地关闭 Spring 应用上下文
+        context.close();
+    }
+
+    @Override
+    public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
+        AwareInterfaceDependencyInjectionDemo.beanFactory = beanFactory;
+    }
+
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        AwareInterfaceDependencyInjectionDemo.applicationContext = applicationContext;
+    }
+}
+```
+
 #### 循环依赖
 
 ##### 什么是循环依赖
@@ -494,9 +533,78 @@ private void doInvokeListener(ApplicationListener listener, ApplicationEvent eve
 }
 ```
 
+## 面试题
 
+### 1、FactoryBean与BeanFactory区别
 
+- BeanFactory
 
+  BeanFactory是一个接口也是IOC最基本的容器,负责生产和管理bean,它为其他具体的IOC容器提供了最基本的规范，该接口是IOC容器的顶层实现
 
- 
+- FactoryBean
 
+  实现类
+
+  ```java
+  //实现类
+  public class StudentFactoryBean implements FactoryBean<Student> {
+  
+      @Override
+      public Student getObject() throws Exception {
+          Student student = new Student();
+          student.setId(1);
+          student.setName("fuzy");
+          return student;
+      }
+  
+      @Override
+      public Class<?> getObjectType() {
+          return Student.class;
+      }
+  }
+  
+  ```
+
+  测试类
+
+  ```java
+  public class UserFactoryBeanDemo {
+  
+      public static void main(String[] args) throws Exception {
+          ApplicationContext applicationContext = new ClassPathXmlApplicationContext("META-INF/lookup/student-factory-bean.xml");
+          Student student = (Student) applicationContext.getBean("studentFactoryBean");
+          //输出student对象
+          System.out.println("普通方式获取Bean:"+student);
+          //输出StudentFactoryBean对象
+          StudentFactoryBean bean = (StudentFactoryBean) applicationContext.getBean("&studentFactoryBean");
+          Student object = bean.getObject();
+          //通过输出StudentFactoryBean的getObject方法获取student对象
+          System.out.println("通过factoryBean获取"+object);
+          System.out.println(student==object);
+      }
+  }
+  ```
+
+###  2、ObjectFactory与BeanFactory区别
+
+参考：https://blog.csdn.net/qq_41907991/article/details/105123387
+
+**ObjectFactory类**
+
+```java
+@FunctionalInterface
+public interface ObjectFactory<T> {
+    //返回一个对象实例
+    T getObject() throws BeansException;
+}
+```
+
+**ObjectFactory 与 BeanFactory 均提供依赖查找的能力。**
+
+**不过 ObjectFactory 仅关注一个或一种类型的 Bean 依赖查找，并且 自身不具备依赖查找的能力，能力则由 BeanFactory 输出。** 
+
+**BeanFactory 则提供了单一类型、集合类型以及层次性等多种依赖查 找方式。**
+
+### 3、@Autowire与@Resource的区别
+
+> @Resource不是spring的注解，通过名称注入；@Autowire通过类型注入，如果该类型有多个实现类，则可通过@Qualifier去根据名称来装配

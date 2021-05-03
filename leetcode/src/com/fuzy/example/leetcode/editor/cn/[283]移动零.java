@@ -18,6 +18,29 @@ package com.fuzy.example.leetcode.editor.cn;
 
 //leetcode submit region begin(Prohibit modification and deletion)
 class Solution61 {
+    public static void moveZeroes2(int[] nums){
+        int j = 0;
+        for (int i = 0; i < nums.length; i++) {
+            if(nums[i]!=0){
+                int temp = nums[i];
+                nums[i] = nums[j];
+                nums[j] = temp;
+            }
+        }
+    }
+
+    public static void moveZeroes1(int[] nums){
+        int j = 0 ;
+        for (int i = 0; i < nums.length; i++) {
+            if(nums[i]!=0){
+                nums[j++] = nums[i];
+            }
+        }
+        for (int i = j; i < nums.length; i++) {
+            nums[i] = 0;
+        }
+    }
+
     public void moveZeroes(int[] nums) {
         for (int i = 0; i < nums.length; i++) {
             if(nums[i]==0){

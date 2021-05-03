@@ -23,6 +23,23 @@ package com.fuzy.example.leetcode.editor.cn;
 
 //leetcode submit region begin(Prohibit modification and deletion)
 class Solution62 {
+
+    public void reverseString1(char[] s){
+        int i = 0;
+        reverse(s,i);
+    }
+
+    private void reverse(char[] s, int i) {
+        int len = s.length;
+        if(i>=len/2){
+            return;
+        }
+        char temp = s[i];
+        s[i] = s[len-i-1];
+        s[len-i-1] = temp;
+        reverse(s,i+1);
+    }
+
     public void reverseString(char[] s) {
         int j = s.length-1;
         for (int i = 0; i < s.length; i++) {
