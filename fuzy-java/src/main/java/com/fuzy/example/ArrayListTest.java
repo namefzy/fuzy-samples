@@ -17,13 +17,23 @@ public class ArrayListTest {
         list.add("1");
         list.add("2");
         Iterator<String> iterator = list.iterator();
-        while (iterator.hasNext()){
-            String s = iterator.next();
-            if(s.equals("2")){
-                list.add("3");
+        for (int i = 0; i < list.size(); i++) {
+            if(list.get(i).equals("1")){
+                list.remove(2);
             }
-            System.out.println(s);
+            System.out.println(list.get(i));
         }
+        System.out.println(list.size());
+//        for (String s : list) {
+//            if("1".equals(s)){
+//                list.remove(s);
+//            }
+//        }
+//        while (iterator.hasNext()){
+//            if("1".equals(iterator.next())){
+//                iterator.remove();
+//            }
+//        }
 
 
 

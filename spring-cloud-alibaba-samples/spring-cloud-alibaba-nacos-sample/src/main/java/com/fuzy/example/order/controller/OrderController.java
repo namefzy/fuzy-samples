@@ -2,10 +2,7 @@ package com.fuzy.example.order.controller;
 
 import com.fuzy.example.order.domain.Order;
 import jdk.nashorn.internal.ir.annotations.Ignore;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Date;
 
@@ -17,11 +14,12 @@ import java.util.Date;
  * @email fuzy@ufen.cn
  * @date 2021/5/7 16:50
  */
-@RestController("/order")
+@RequestMapping("/order")
+@RestController
 public class OrderController {
 
-    @GetMapping("/query/{id}")
-    public Order queryOrderById(@PathVariable(value = "id")String id){
+    @GetMapping("/query")
+    public Order queryOrderById(){
         Order order = new Order();
         order.setCreateDate(new Date());
         order.setId(1);

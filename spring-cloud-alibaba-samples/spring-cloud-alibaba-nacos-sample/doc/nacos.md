@@ -165,3 +165,12 @@ INFO Nacos started successfully in cluster mode. use external storage
 https://www.jianshu.com/p/8e4bbe7e276c
 
 https://www.cnblogs.com/smileIce/p/11221765.html
+
+## 4、注册服务流程
+
+​	`nacos`服务端提供对应的接口`InstanceController`，客户端发起请求后，将对应的服务注册到`nacos`服务器上。源码可参考`com.alibaba.cloud.nacos.registry.NacosServiceRegistry#register`该方法，注册接口具体参数可参考[nacos-api文档](https://nacos.io/zh-cn/docs/open-api.html)。
+
+
+
+
+
