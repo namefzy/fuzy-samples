@@ -34,51 +34,52 @@ package com.fuzy.example.leetcode.editor.cn;//给你一个整数数组 jobs ，�
 // 1 <= jobs[i] <= 107 
 // 
 // Related Topics 递归 回溯算法 
-// 👍 122 👎 0
+// 👍 175 👎 0
 
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.Set;
 
 //leetcode submit region begin(Prohibit modification and deletion)
 class Solution1723 {
+
+    static int res = Integer.MAX_VALUE;
+
     public static void main(String[] args) {
         System.out.println(minimumTimeRequired(new int[]{1,2,4,7,8},2));
     }
 
     public static int minimumTimeRequired(int[] jobs, int k) {
-        Arrays.sort(jobs);
-        //如果工作数量小于工人
-        if(jobs.length<k){
-            return jobs[jobs.length-1];
-        }else{
-            int[] workers = new int[k];
+        backtrack(jobs, 0, new int[k], 0);
+        return res;
+    }
 
-            int i = 0;
-            while (i<jobs.length){
-
-                //问题： [1,3,5,7,12,20]
-                for (int j = 0; j < workers.length; j++) {
-                    workers[j]+=jobs[i];
-                    i++;
-                }
-                //todo works需要倒叙处理
-                reverse(workers);
+    private static void backtrack(int[] jobs, int i, int[] worker, int max) {
+        //边界条件判断
+        if (i == jobs.length) {
+            res = Math.min(res, max);
+            System.out.println("res="+res+";i="+i);
+            return;
+        }
+        //记录计算过的，如果同一层相同的值已经被计算过了，就不需要在计算了
+        Set<Integer> set = new HashSet<>();
+        for (int j = 0; j < worker.length; j++) {
+            //同一层相同的值已经计算过了，就不需要在计算了，直接跳过
+            if (!set.add(worker[j])) {
+                continue;
             }
-            return workers[k-1];
-        }
-
-    }
-
-    private static void reverse(int[] workers) {
-        int left = 0 ;
-        int right = workers.length-1;
-        while (left<right){
-            int temp = workers[left];
-            workers[left] = workers[right];
-            workers[right] = temp;
-            left++;
-            right--;
+            //如果时间已经超过之前找的【尽可能小的最大工作时间】，
+            //就跳过
+            if (worker[j] + jobs[i] >= res) {
+                continue;
+            }
+            //选择
+            worker[j] += jobs[i];
+            backtrack(jobs, i + 1, worker, Math.max(worker[j], max));
+            //撤销选择
+            worker[j] -= jobs[i];
         }
     }
+
 }
 //leetcode submit region end(Prohibit modification and deletion)
