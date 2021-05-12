@@ -39,6 +39,31 @@ class Solution79 {
         int[] nums = new int[]{1,2,3,1};
         rob(nums);
     }
+    public static int rob1(int[] nums){
+        if(nums.length==0){
+            return 0;
+        }
+        if(nums.length==1){
+            return nums[0];
+        }
+        int[][] dps = new int[nums.length][2];
+        //第一天不偷 0
+        dps[0][0] = 0;
+        //第一天偷
+        dps[0][1] = nums[0];
+
+        //第二天 不偷
+        dps[1][0] = dps[0][1];
+        //第二天 偷
+        dps[1][1] = nums[1];
+
+        for (int i = 2; i < nums.length; i++) {
+            //i天偷的最大值； 要么今天偷
+            dps[i][1] = Math.max(dps[i-2][0]+nums[i],dps[i-1][1]);
+        }
+        return 0;
+    }
+
     public static int rob(int[] nums) {
         if(nums.length==0){
             return 0;

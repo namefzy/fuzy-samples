@@ -22,13 +22,16 @@ public class Client {
         //代理的真实对象
         Subject realSubject = new RealSubject();
 
+
+//        ClassLoader loader = Subject.class.getClassLoader();
+//        Class<?>[] interfaces = Subject.class.getInterfaces();
         ClassLoader loader = realSubject.getClass().getClassLoader();
         Class[] interfaces = realSubject.getClass().getInterfaces();
         InvocationHandler invocationHandler = new ProxySubject(realSubject);
         Subject subject = (Subject) Proxy.newProxyInstance(loader,interfaces,invocationHandler);
         subject.SayHello("校长");
         // 将生成的字节码保存到本地，
-        createProxyClassFile();
+//        createProxyClassFile();
     }
 
         private static void createProxyClassFile(){

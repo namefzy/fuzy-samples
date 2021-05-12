@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class CycleDependencyDemo {
 
-    private static ConcurrentHashMap<String,Object> chm = new ConcurrentHashMap<>();
+    private static ConcurrentHashMap<String,Object> chm = new ConcurrentHashMap<String,Object>();
 
     /**
      * 创建A对象时，发现没有则创建，在注入的时候发现需要依赖B对象；则创建B对象，同时又发现A对象存在，则先把未创建好的A对象给B；

@@ -9,7 +9,7 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.fuzy.example</groupId>
-    <artifactId>spring-cloud-openfeign</artifactId>
+    <artifactId>spring-cloud-netflix-openfeign-samples</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>spring-cloud-openfeign</name>
     <description>Demo project for Spring Boot</description>

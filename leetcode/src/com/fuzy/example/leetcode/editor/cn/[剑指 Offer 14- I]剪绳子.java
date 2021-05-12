@@ -25,24 +25,10 @@ package com.fuzy.example.leetcode.editor.cn;//给你一根长度为 n 的绳子�
 // 👍 207 👎 0
 
 
-import java.util.List;
-
 //leetcode submit region begin(Prohibit modification and deletion)
-class Solution751 {
+class Solution555 {
     public int cuttingRope(int n) {
-
-        int[] dp = new int[n+1];
-        dp[2] = 1;
-        for (int i = 3; i < n+1; i++) {
-            for (int j = 2; j < i; j++) {
-                dp[i] = Math.max(dp[i],Math.max(j*(i-j),j*dp[i-j]));
-            }
-
-        }
         return 0;
     }
-
-
-
 }
 //leetcode submit region end(Prohibit modification and deletion)
