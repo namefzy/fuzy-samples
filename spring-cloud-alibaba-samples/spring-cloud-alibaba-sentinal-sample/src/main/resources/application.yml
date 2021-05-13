@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: gateway-service
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 192.168.56.100:8848
+        username: nacos
+        password: nacos
+    sentinel:
+      transport:
+        dashboard:
+      eager: true
+
+server:
+  port: 8082
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'

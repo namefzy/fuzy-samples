@@ -29,6 +29,7 @@
         <module>fuzy-java</module>
         <module>design-pattern</module>
         <module>oauth2</module>
+        <module>mybatis</module>
 
     </modules>
 
