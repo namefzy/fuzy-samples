@@ -4,13 +4,22 @@ spring:
   cloud:
     nacos:
       discovery:
-        server-addr: 192.168.56.100:8848
+        server-addr: 192.168.56.101:8848
         username: nacos
         password: nacos
-    gateway: #gateway通过nacos实现自动转发
+    gateway:
       discovery:
         locator:
           enabled: true #locator.enabled是自动根据URL规则实现路由转发
+      routes:
+        - id: order_route
+          uri: lb://order-service
+          predicates:
+            - Path=/order/**
+            - After=2021-10-05T00:00:00.000+08:00[Asia/Shanghai]
+          filters:
+            - StripPrefix=1
+
 
 server:
   port: 8081

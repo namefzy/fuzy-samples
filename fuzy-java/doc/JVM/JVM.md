@@ -85,13 +85,17 @@ public class Person{
 }
 ```
 
-![类加载机制](https://image-1301573777.cos.ap-chengdu.myqcloud.com/类加载机制.png)
 
-​																																	**类加载流程**
 
-首先我们需要明白运行时数据区域各个模块主要作用是什么？
+
 
 ### 1、1 运行时数据区
+
+> Java虚拟机在执行Java程序的过程中会把它管理的内存分为若干个不同的数据区域。这些区域有着各自的用途，一级创建和销毁的时间，有的区域随着虚拟机进程的启动而存在，有些区域则依赖用户线程的启动和结束而建立和销毁。如下图所示：
+
+![image-20210511230440147](https://image-1301573777.cos.ap-chengdu.myqcloud.com/image-20210511230440147.png)
+
+​																										**运行时数据区**
 
 #### 1.1.1 Method Area（方法区）
 
@@ -105,10 +109,8 @@ public class Person{
 
 #### 1.1.2 Heap（堆）
 
-- 时java虚拟机中管理内存最大的一块，在虚拟机启动时创建，被所有线程共享。
-- Java对象实例以及数组都分配在堆上；**另外Class对象分配在堆上**
-
-> **值得一提的是Class对象也是分配在堆上，在Java堆中生成代表这个类的`Java.lang.Class`对象，作为对方法区中这些数据的访问入口**
+- 是java虚拟机中管理内存最大的一块，在虚拟机启动时创建，被所有线程共享。
+- Java对象实例以及数组都分配在堆上
 
 #### 1.1.3 Java Virtual Machine Stacks（虚拟机栈）
 
@@ -180,11 +182,15 @@ public class Person{
 
 ### 1、2 类加载流程
 
-了解了运行时数据区各部分功能后，我们分析**类加载流程图**中的执行流程：
+![类加载机制](https://image-1301573777.cos.ap-chengdu.myqcloud.com/类加载机制.png)
+
+​																															**类加载流程**
+
+了解了运行时数据区各部分功能后，我们分析**类加载流程**中的执行流程：
 
 #### 1.2.1 **javac编译器**
 
-​	`Person.java`源文件被`javac`编译器编译成一个二进制文件，里面的内容是16进制。里面的内容不过多研究，想深入了解16进制对应的每块内容是什么可以参考这篇博客[Class文件十六进制背后的秘密](https://blog.csdn.net/peng_zhanxuan/article/details/104329859)
+​	`Person.java`源文件被`javac`编译器编译成一个二进制文件，里面的内容是16进制。里面的内容不过多研究，想深入了解16进制对应的每块内容是什么可以参考这篇博客[Class文件十六进制背后的秘密](https://blog.csdn.net/peng_zhanxuan/article/details/104329859)，每块数字代表着对应的信息。
 
 ```tex
 CA FE BA BE 00 00 00 34  00 43 0A 00 0A 00 2F 08
@@ -214,11 +220,9 @@ CA FE BA BE 00 00 00 34  00 43 0A 00 0A 00 2F 08
 
 ###### **装载**
 
-​	装载阶段指的是将通过`javac`编译后的`.class`文件中的二进制数据读入到内存中，将其放在运行时数据区的方法区内，然后在堆区创建一个 `java.lang.Class`对象（JVM规范并未说明Class对象位于哪里，**HotSpot虚拟机将其放在方法区中**），用来封装类在方法区内的数据结构。类的加载的最终产品是位于堆区中的 `Class`对象， Class对象封装了类在方法区内的数据结构，并且向Java程序员提供了访问方法区内的数据结构的接口。
+​	装载阶段指的是将通过`javac`编译后的`.class`文件中的二进制数据读入到内存中，将其放在运行时数据区的方法区内，然后在**方法区**创建一个 `java.lang.Class`对象（JVM规范并未说明Class对象位于哪里，**HotSpot虚拟机将其放在方法区中**），用来封装类在方法区内的数据结构。类的加载的最终产品是位于堆区中的 `Class`对象， Class对象封装了类在方法区内的数据结构，并且向Java程序员提供了访问方法区内的数据结构的接口。
 
-​	**该阶段也是可控性最强的阶段，开发人员可以使用系统提供的类加载器来完成，也可以自定义自己的类加载器来完成加载。加载阶段完成后，虚拟机外部的二进制字节流就按照虚拟机所需的格式存储在方法区之中，而且在Java堆中也创建一个 `java.lang.Class`类的对象，这样便可以通过该对象访问方法区中的这些数据**。
-
-![image-20210124211046085](https://image-1301573777.cos.ap-chengdu.myqcloud.com/image-20210124211046085.png)
+​	**该阶段也是可控性最强的阶段，开发人员可以使用系统提供的类加载器来完成，也可以自定义自己的类加载器来完成加载。加载阶段完成后，虚拟机外部的二进制字节流就按照虚拟机所需的格式存储在方法区之中，而且在Java方法去中也创建一个 `java.lang.Class`类的对象，这样便可以通过该对象访问方法区中的这些数据**。
 
 > **注意：Class对象就相当于一个模板，所有new出来的实例都是以这个模板来生成出来的。**
 
@@ -264,7 +268,7 @@ CA FE BA BE 00 00 00 34  00 43 0A 00 0A 00 2F 08
     | double              | 0.0d     |
     | reference(引用类型) | null     |
 
-  - 这里不包含final修饰的类变量，因为final在编译的时候就分配了，准备阶段会显示初始化；
+  - **这里不包含final修饰的类变量，因为final在编译的时候就分配了，准备阶段会显示初始化**；
 
   - 这里不会为实例变量（也就是没加static）分配初始化，类变量会分配在方法区中，而实例变量是 会随着对象一起分配到Java堆中。
 
@@ -296,15 +300,13 @@ CA FE BA BE 00 00 00 34  00 43 0A 00 0A 00 2F 08
 
 - 解析
 
-  ​	**[把类中的符号引用转换为直接引用](https://www.cnblogs.com/mzzcy/p/7223405.html)**；直接引用是与虚拟机内存布局实现相关，同一个符号引用在不同虚拟机实例上翻译出来的直接引用一般 不会相同，如果有了直接引用，那引用的目标必定存在内存中。另外这个阶段对于用户来说是透明(无法操作)的。
+  ​	**[把类中的符号引用转换为直接引用](https://www.cnblogs.com/mzzcy/p/7223405.html)**；直接引用是与虚拟机内存布局实现相关，同一个符号引用在不同虚拟机实例上翻译出来的直接引用一般不会相同，如果有了直接引用，那引用的目标必定存在内存中。另外这个阶段对于用户来说是透明(无法操作)的。
 
 ###### 初始化
 
 > **注意这里的初始化与new出来的对象初始化不同，这里指的是类初始化。**
 
-- 
-
-JVM初始化步骤：
+**初始化注意事项**
 
 - 假如这个类还没有被加载和连接，则程序先加载并连接该类 
 - 假如该类的直接父类还没有被初始化，则先初始化其直接父类 
@@ -339,7 +341,44 @@ Java程序对类的使用方式可分为两种:**主动使用**与**被动使用
 
   > **被动引用解释了开篇中的代码为什么输出的是`HelloJVM_Father`**。
 
-再来看下面这个例子：
+我们来看下面的代码示例
+
+**示例一**
+
+```java
+package com.jvm.classloader;
+
+class YeYe{
+    static {
+        System.out.println("YeYe静态代码块");
+    }
+}
+
+class Father extends YeYe{
+    public final static String strFather="HelloJVM_Father";
+
+    static{
+        System.out.println("Father静态代码块");
+    }
+}
+
+class Son extends Father{
+    public static String strSon="HelloJVM_Son";
+
+    static{
+        System.out.println("Son静态代码块");
+    }
+}
+
+public class InitiativeUse {
+    public static void main(String[] args) {
+        //输出结果是HelloJVM_Father
+        System.out.println(Son.strFather);
+    }
+}
+```
+
+**示例二**
 
 ```java
 package com.jvm.classloader;
@@ -360,19 +399,14 @@ class Test{
 
 public class FinalUUidTest {
     public static void main(String[] args) {
+        //static 静态代码块
+		//0.7338688977344875
         System.out.println(Test.str);
     }
 }
 ```
 
-输出：
-
-```java
-static 静态代码块
-0.7338688977344875
-```
-
-按照**被动引用第三点**来说，应该不会输出静态代码块中的内容，那么为什么会产生这个结果呢？
+通过上面**被动引用**的分析，我们可以得出出示例一输出`HelloJVM_Father`；但按照**被动引用第三点**来说，示例二应该不会输出静态代码块中的内容，那么为什么会产生这个结果呢？
 
 > **其实final不是重点，重点是编译器把结果放入常量池！当一个常量的值并非编译期可以确定的，那么这个值就不会被放到调用类的常量池中，这时在程序运行时，会导致主动使用这个常量所在的类，也就是str需要程序运行才能确定这个值，所以这个类会被初始化。**
 
@@ -459,7 +493,7 @@ null
 
 - **缓存机制**
 
-  ​		缓存机制将会保证所有加载过的Class都将在内存中缓存，当程序中需要使用某个Class 时，类加载器先从内存的缓存区寻找该Class，只有缓存区不存在，系统才会读取该类对应的二进 制数据，并将其转换成Class对象，存入缓存区。这就是为什么修改了Class后，必须重启JVM，程 序的修改才会生效.对于一个类加载器实例来说，相同全名的类只加载一次，即`loadClass`方法不 会被重复调用。
+  ​		缓存机制将会保证所有加载过的Class都将在内存中缓存，当程序中需要使用某个Class 时，类加载器先从内存的缓存区寻找该Class，只有缓存区不存在，系统才会读取该类对应的二进制数据，并将其转换成Class对象，存入缓存区。这就是为什么修改了Class后，必须重启JVM，程序的修改才会生效.对于一个类加载器实例来说，相同全名的类只加载一次，即`loadClass`方法不会被重复调用。
 
 #### 双亲委派机制
 
@@ -467,7 +501,7 @@ null
 
 ​																								**类加载器结构**
 
-其中核心代码则是`ClassLoader`中的`loadClass()`方法，该方法中的逻辑就是双亲委派机制的实现，下面分析下源码：
+其中核心代码则是`ClassLoader`中的`loadClass()`方法，**破化双亲委派机制也是重写改代码即可**。该方法中的逻辑就是双亲委派机制的实现，下面分析下源码：
 
 `java.lang.ClassLoader#loadClass(java.lang.String, boolean)`：根据name加载class
 
@@ -517,85 +551,7 @@ protected Class<?> loadClass(String name, boolean resolve)
 }
 ```
 
-`java.lang.ClassLoader#findClass`：如果没找到则会抛出`ClassNotFoundException`异常
-
-```java
-//一般通过重写该方法来打破双亲委派机制
-protected Class<?> findClass(String name) throws ClassNotFoundException {
-    throw new ClassNotFoundException(name);
-}
-```
-
-#### 自定义类加载器
-
-```java
-public class MyClassLoader extends ClassLoader {
-    private String root;
-
-    protected Class<?> findClass(String name) throws ClassNotFoundException {
-        byte[] classData = loadClassData(name);
-        if (classData == null) {
-            throw new ClassNotFoundException();
-        } else {
-            return defineClass(name, classData, 0, classData.length);
-        }
-    }
-
-    private byte[] loadClassData(String className) {
-        String fileName = root + File.separatorChar
-            + className.replace('.', File.separatorChar) + ".class";
-        try {
-            InputStream ins = new FileInputStream(fileName);
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            int bufferSize = 1024;
-            byte[] buffer = new byte[bufferSize];
-            int length = 0;
-            while ((length = ins.read(buffer)) != -1) {
-                baos.write(buffer, 0, length);
-            }
-            return baos.toByteArray();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    public String getRoot() {
-        return root;
-    }
-
-    public void setRoot(String root) {
-        this.root = root;
-    }
-
-    public static void main(String[] args)  {
-
-        MyClassLoader classLoader = new MyClassLoader();
-        classLoader.setRoot("D:\\dirtemp");
-
-        Class<?> testClass = null;
-        try {
-            testClass = classLoader.loadClass("com.yichun.classloader.Demo1");
-            Object object = testClass.newInstance();
-            System.out.println(object.getClass().getClassLoader());
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        } catch (InstantiationException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        }
-    }
-}
-```
-
-> 1、这里传递的文件名需要是类的全限定性名称，即com.yichun.test.classloading.Test格式的，因为defineClass 方法是按这种格式进行处理的。 
->
-> 2、最好不要重写`loadClass`方法，**因为这样容易破坏双亲委托模式**。
->
-> 3、这类Test 类本身可以被`AppClassLoader`类加载，因此我们不能把com/yichun/test/classloading/Test.class放在类路径下。否则，由于双亲委托机制的存在，会直接导致该类由`AppClassLoader`加载，而不会通过我们自定义类加载器来加载。
-
-**双亲委派的意义**
+**双亲委派的意义**	
 
 ​	**假设用户自定一个类`java.lang.Integer`，通过双亲委派机制传到启动类加载器，而启动类在核心API发现这个类的名字，发现该类已被加载，就不会重新加载这个用户自定义的类，而是直接返回已加载过的`Integer.class`，这样可以防止核心API库被随意篡改。简而言之双亲委派的意义是：系统类防止内存中出现多份同样的字节码；保证Java程序安全稳定运行。**
 

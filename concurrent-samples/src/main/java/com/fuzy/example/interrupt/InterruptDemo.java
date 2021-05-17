@@ -17,19 +17,24 @@ public class InterruptDemo {
                 }
                 //复位 false
                 System.out.println("threadOne isInterrupted:"+Thread.currentThread().isInterrupted());
+
+                while (!Thread.interrupted()){
+                    System.out.println(11111);
+                }
             }
         });
 
-       threadA.start();
+        threadA.start();
 
         //获取中断标志 false
         System.out.println("isInterrupted:"+threadA.isInterrupted());
-       //设置中断标志位为true
-       threadA.interrupt();
+        //设置中断标志位为true,推出for循环
+        threadA.interrupt();
 
-       Thread.sleep(2000);
+        Thread.sleep(2000);
         //获取中断标志 false
         System.out.println("isInterrupted:"+threadA.isInterrupted());
+        System.out.println();
 
         threadA.join();
 
