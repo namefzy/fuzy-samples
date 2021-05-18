@@ -9,7 +9,7 @@ package com.fuzy.jvm;
  */
 public class Demo {
 
-    public static void main(String[] args) {
-        System.out.println("load log class Success!");
+    public void say(){
+        System.out.println("Hello World!");
     }
 }

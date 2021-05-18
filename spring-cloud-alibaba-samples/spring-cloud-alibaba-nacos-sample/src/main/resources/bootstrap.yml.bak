@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: order-service
+  profiles:
+    active: dev
+  cloud:
+    nacos:
+      config:
+        file-extension: yml
+        server-addr: 192.168.56.101
+        username: nacos
+        password: nacos
+

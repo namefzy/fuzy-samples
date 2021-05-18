@@ -14,14 +14,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class TestController {
 
-//    @Value("${custom.flag}")
-//    private String flag;
-//
-//    @Value("${custom.database}")
-//    private String database;
+    @Value("${custom.flag}")
+    private String flag;
 
-//    @GetMapping("/test")
-//    public String test(){
-//        return String.format("flag: %s；</br> database: %s",flag,database);
-//    }
+    @Value("${custom.database}")
+    private String database;
+
+    @GetMapping("/test")
+    public String test(){
+        return String.format("flag: %s；</br> database: %s",flag,database);
+    }
 }

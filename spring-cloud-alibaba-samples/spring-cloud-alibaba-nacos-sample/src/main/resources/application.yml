@@ -9,9 +9,10 @@ spring:
         server-addr: 192.168.56.101:8848
         username: nacos
         password: nacos
-      config:
-        timeout: 30000
 
+custom:
+  flag: development
+  database: 192.168.56.101
 
 #spring:
 #  application:
