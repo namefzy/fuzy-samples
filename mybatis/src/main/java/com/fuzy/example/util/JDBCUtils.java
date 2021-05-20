@@ -1,4 +1,4 @@
-package com.fuzy.example.original;
+package com.fuzy.example.util;
 
 import java.lang.reflect.Field;
 import java.sql.*;
@@ -25,7 +25,7 @@ public class JDBCUtils {
     private static Connection connection;
 
     static {
-        ResourceBundle resourceBundle = ResourceBundle.getBundle("jdbc");
+        ResourceBundle resourceBundle = ResourceBundle.getBundle("db");
         url = resourceBundle.getString("url");
         user = resourceBundle.getString("user");
         password = resourceBundle.getString("password");
@@ -141,9 +141,9 @@ public class JDBCUtils {
 
         try{
             String sql = "select * from user";
-            List<User> users = query(sql,User.class);
-            for (User user1 : users) {
-                System.out.println(user1);
+            List<UserDemo> userDemos = query(sql, UserDemo.class);
+            for (UserDemo userDemo1 : userDemos) {
+                System.out.println(userDemo1);
             }
         }catch (Exception e){
             e.printStackTrace();

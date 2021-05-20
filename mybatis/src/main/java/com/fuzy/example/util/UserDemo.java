@@ -1,4 +1,4 @@
-package com.fuzy.example.original;
+package com.fuzy.example.util;
 
 /**
  * @author fuzy
@@ -8,7 +8,7 @@ package com.fuzy.example.original;
  * @email fuzy@ufen.cn
  * @date 2021/5/13 16:40
  */
-public class User {
+public class UserDemo {
     private String userName;
 
     private int age;

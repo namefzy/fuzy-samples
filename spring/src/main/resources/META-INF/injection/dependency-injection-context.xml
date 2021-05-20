@@ -15,7 +15,7 @@
 
     <bean id="userRepository" class="com.example.fuzy.spring.ioc.dependency.injection.repository.UserRepository"
           autowire="byType"> <!-- Auto-Wiring -->
-                <property name="users">
+                <property name="userDemos">
                     <util:list>
                         <ref bean="son" />
                         <ref bean="parent" />

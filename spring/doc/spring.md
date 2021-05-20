@@ -124,8 +124,8 @@ public static void main(String[] args) {
     private static void lookupCollectionByType(BeanFactory beanFactory) {
         if (beanFactory instanceof ListableBeanFactory) {
             ListableBeanFactory listableBeanFactory = (ListableBeanFactory) beanFactory;
-            Map<String, User> users = listableBeanFactory.getBeansOfType(User.class);
-            System.out.println("查找到的所有的 User 集合对象：" + users);
+            Map<String, User> userDemos = listableBeanFactory.getBeansOfType(User.class);
+            System.out.println("查找到的所有的 User 集合对象：" + userDemos);
         }
     }
     ```
@@ -151,8 +151,8 @@ public static void main(String[] args) {
     private static void lookupByAnnotationType(BeanFactory beanFactory) {
         if (beanFactory instanceof ListableBeanFactory) {
             ListableBeanFactory listableBeanFactory = (ListableBeanFactory) beanFactory;
-            Map<String, User> users = (Map) listableBeanFactory.getBeansWithAnnotation(Super.class);
-            System.out.println("查找标注 @Super 所有的 User 集合对象：" + users);
+            Map<String, User> userDemos = (Map) listableBeanFactory.getBeansWithAnnotation(Super.class);
+            System.out.println("查找标注 @Super 所有的 User 集合对象：" + userDemos);
         }
     }
     ```
