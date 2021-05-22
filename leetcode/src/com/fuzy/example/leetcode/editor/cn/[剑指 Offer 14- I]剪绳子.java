@@ -27,8 +27,20 @@ package com.fuzy.example.leetcode.editor.cn;//给你一根长度为 n 的绳子�
 
 //leetcode submit region begin(Prohibit modification and deletion)
 class Solution555 {
+
     public int cuttingRope(int n) {
-        return 0;
+        int[] dp = new int[n+1];
+        //对于给出的数i，取最大值只有两种情况：1 i-j不可分割 j*(i-j)；2 i-j可以继续分割 j*dp[(i-j)
+        for (int i = 2; i <= n; i++) {
+            int curMax = 0;
+            for (int j = 1; j < i; j++) {
+                curMax = Math.max(curMax,Math.max(j*(i-j),j*dp[i-j]));
+            }
+            dp[i] = curMax;
+        }
+        return dp[n];
     }
+
+
 }
 //leetcode submit region end(Prohibit modification and deletion)
