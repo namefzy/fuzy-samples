@@ -18,9 +18,10 @@ public class InterruptDemo {
                 //复位 false
                 System.out.println("threadOne isInterrupted:"+Thread.currentThread().isInterrupted());
 
-                while (!Thread.interrupted()){
-                    System.out.println(11111);
-                }
+                System.out.println(Thread.interrupted());
+                System.out.println(Thread.interrupted());
+
+
             }
         });
 
