@@ -20,6 +20,11 @@ public class NotifyRunnable implements Runnable{
         synchronized (user){
             System.out.println("notify唤醒前");
             user.notify();
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
             System.out.println("notify唤醒后");
         }
 

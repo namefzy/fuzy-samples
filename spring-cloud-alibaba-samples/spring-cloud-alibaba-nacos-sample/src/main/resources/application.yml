@@ -22,3 +22,6 @@ custom:
 #    username: root
 #    password: root
 #    driver-class-name: com.mysql.cj.jdbc.Driver
+logging:
+  level:
+    root: debug
