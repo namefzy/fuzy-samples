@@ -557,11 +557,17 @@ protected Class<?> loadClass(String name, boolean resolve)
 
 [破坏双亲委派](https://blog.csdn.net/cy973071263/article/details/104129163)
 
-## 2、JVM内存模型
+## 2、垃圾回收
+
+​	垃圾回收（Garbage Collection，GC），顾名思义就是释放垃圾占用的空间，防止内存泄露。有效的使用可以使用的内存，对内存堆中已经死亡的或者长时间没有使用的对象进行清除和回收。那么如何确定这个对象被`jvm`看作是垃圾？垃圾回收发生java内存中的哪块区域？什么样的对象会被垃圾回收？带着这些疑问我们来看下面的文章。
+
+### 堆结构
+
+在`jvm`运行时数据区那一章节我们分析了`new`出来的对象都是存在堆中的，那么堆的结构分为哪些呢？如下图：
 
 ![image-20210126223228939](https://image-1301573777.cos.ap-chengdu.myqcloud.com/image-20210126223228939.png)
 
-​																																**JVM内存模型**
+​																											       **堆结构**	
 
 - **非堆（方法区）**
 
@@ -571,7 +577,7 @@ protected Class<?> loadClass(String name, boolean resolve)
 
   - **Old区**
 
-    **存放大龄对象，以及一些特殊的大的兑现**
+    **存放大龄对象，以及一些特殊的大的对象**
 
   - **Young区**
 
@@ -596,36 +602,7 @@ protected Class<?> loadClass(String name, boolean resolve)
 
 ![image-20210126230223412](https://image-1301573777.cos.ap-chengdu.myqcloud.com/image-20210126230223412.png)
 
-​																																**对象创建过程**
-
-### 常见问题
-
-- **Young区为什么分为Eden区与S区？**
-
-  > ​		**如果没有Young没有分区，那么每次发生一次GC都会导致存活对象被送入Old区，这样老年代很快被填满，触发Major GC(该GC一般伴随着Full GC)，频繁触发会影响程序的执行和相应速度。所以Survivor的存在意义,就是减少被送到老年代的对象,进而减少Full GC的发生。Survivor的预筛选保证,只有经历16次Minor GC还能在新生代中存活的对象,才会被送到老年代。**
-
-- **为什么设置两个Survivor区？**
-
-  > **假设现在只有一个survivor区，我们来模拟一下流程：
-  > 		新建的对象在Eden中，一旦Eden满了，触发一次Minor GC，Eden中的存活对象就会被移动到Survivor区。这样继续循环下去，下一次Eden满了的时候，问题来了，此时进行Minor GC，Eden和Survivor各有一些存活对象，如果此时把Eden区的存活对象硬放到Survivor区，很明显这两部分对象所占有的内存是不连续的，也就导致了内存碎片化。如下图：色块代表对象，白色大代表Eden区，白色小代表S区**
-
-  ![image-20210127225017782](https://image-1301573777.cos.ap-chengdu.myqcloud.com/image-20210127225017782.png)
-
-  ​																													**S区只有一块的情况**
-
-![image-20210127225241502](https://image-1301573777.cos.ap-chengdu.myqcloud.com/image-20210127225241502.png)
-
-​																																	**S区分成两块的情况**
-
-​			**所以S区分成两块的根本目的是为了保证S区无碎片化。**
-
-- **新生代中Eden:S0:S1为什么是8:1:1？**
-
-  > ​		新生代中的可用内存：复制算法用来担保的内存为9:1 可用内存中Eden：S1区为8:1 即新生代中Eden:S0:S1 = 8:1:1 现代的商业虚拟机都采用这种收集算法来回收新生代，IBM公司的专门研究表明，新生代中的对象大概98%是 “朝生夕死”的。
-
-## 3、垃圾回收
-
-​	上文中说到`Full GC、Minor GC`，其实这都是属于垃圾回收，只不过发生的区域不同。那么问题来了，什么样的对象会被垃圾回收？什么时候会发生垃圾回收？带着这样的问题，我们来看下面的内容。
+​																									     **对象创建过程**
 
 ### 如何确定一个对象是垃圾？
 
@@ -646,8 +623,8 @@ protected Class<?> loadClass(String name, boolean resolve)
 
   如上图所示，采用引用计数法时，有以下步骤：
 
-  - a = new A()； a的引用+1； count=1
-  - b.setA(a)； a的引用+1；     count=2
+  - `a = new A()`； a的引用+1； count=1
+  - `b.setA(a)`； a的引用+1；     count=2
   - a=null； a的引用-1；           count=1
 
   当a=null时，如果此时发生垃圾回收，由于a的引用不为0，依然不会被回收。此时就会造成内存泄漏。
@@ -675,15 +652,40 @@ protected Class<?> loadClass(String name, boolean resolve)
 - Monitor Used -用于同步的监控对象 
 - Held by JVM -用于 JVM 特殊目的由 GC 保留的对象，但实际上这个与 JVM 实现有关联。
 
-参考链接:https://www.yourkit.com/docs/java/help/gc_roots.jsp
-
 ### 什么时候垃圾回回收？
 
 - Young区或者Old区空间不足
 - 方法区空间不足
 - 主动调用`System.gc()`
 
-### 垃圾收集算法
+### 常见问题
+
+- **Young区为什么分为Eden区与S区？**
+
+  > ​		**如果没有Young没有分区，那么每次发生一次GC都会导致存活对象被送入Old区，这样老年代很快被填满，触发Major GC(发生在old区的垃圾回收，该GC一般伴随着Full GC，Full GC=old区gc+young区gc)，频繁触发会影响程序的执行和相应速度。所以Survivor（存放活着的对象）的存在意义,就是减少被送到老年代的对象,进而减少Full GC的发生。Survivor的预筛选保证,只有经历16次Minor GC（发生在Young区的垃圾回收）还能在新生代中存活的对象,才会被送到老年代。**
+
+- **为什么设置两个Survivor区？**
+
+  > **假设现在只有一个survivor区，我们来模拟一下流程：
+  > 		新建的对象在Eden中，一旦Eden满了，触发一次Minor GC，Eden中的存活对象就会被移动到Survivor区。这样继续循环下去，下一次Eden满了的时候，问题来了，此时进行Minor GC，Eden和Survivor各有一些存活对象，如果此时把Eden区的存活对象硬放到Survivor区，很明显这两部分对象所占有的内存是不连续的，也就导致了内存碎片化。也许我们会问为什么不在每次GC的时候进行重排列？因为Minor GC会比较频繁，相比较重排列，直接复制对性能损耗低。**
+
+  ![image-20210127225017782](https://image-1301573777.cos.ap-chengdu.myqcloud.com/image-20210127225017782.png)
+
+  ​																										**S区只有一块的情况**
+
+![image-20210127225241502](https://image-1301573777.cos.ap-chengdu.myqcloud.com/image-20210127225241502.png)
+
+​																													**S区分成两块的情况**
+
+​			**所以S区分成两块的根本目的是为了保证S区无碎片化。**
+
+- **新生代中Eden:S0:S1为什么是8:1:1？**
+
+  > ​		新生代中的可用内存：复制算法用来担保的内存为9:1 可用内存中Eden：S1区为8:1 即新生代中Eden:S0:S1 = 8:1:1 现代的商业虚拟机都采用这种收集算法来回收新生代，IBM公司的专门研究表明，新生代中的对象大概98%是 “朝生夕死”的。
+
+参考链接:https://www.yourkit.com/docs/java/help/gc_roots.jsp
+
+## 3、垃圾收集算法
 
 #### 标记-清除
 
@@ -811,7 +813,7 @@ protected Class<?> loadClass(String name, boolean resolve)
 
 ![image-20210130185724499](https://image-1301573777.cos.ap-chengdu.myqcloud.com/image-20210130185724499.png)
 
-​																															**G1收集器堆内存布局**
+​																										**G1收集器堆内存布局**
 
 **G1的工作流程如下：**
 
