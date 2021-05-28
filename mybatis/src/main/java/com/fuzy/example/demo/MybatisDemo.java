@@ -1,6 +1,7 @@
 package com.fuzy.example.demo;
 
 import com.fuzy.example.domain.User;
+import com.fuzy.example.mapper.UserMapper;
 import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
@@ -34,5 +35,22 @@ public class MybatisDemo {
         }
         sqlSession.close();
         in.close();
+    }
+
+    @Test
+    public void test2()throws IOException{
+        InputStream in = Resources.getResourceAsStream("mybatis-config.xml");
+// 2.加载解析配置文件并获取SqlSessionFactory对象
+        SqlSessionFactory factory = new SqlSessionFactoryBuilder().build(in);
+// 3.根据SqlSessionFactory对象获取SqlSession对象
+        SqlSession sqlSession = factory.openSession();
+// 4.通过SqlSession中提供的 API方法来操作数据库
+        UserMapper mapper = sqlSession.getMapper(UserMapper.class);
+        List<User> list = mapper.selectUserList();
+        for (User user : list) {
+            System.out.println(user);
+        }
+// 5.关闭会话
+        sqlSession.close();
     }
 }

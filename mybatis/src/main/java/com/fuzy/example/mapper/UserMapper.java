@@ -1,5 +1,9 @@
 package com.fuzy.example.mapper;
 
+import com.fuzy.example.domain.User;
+
+import java.util.List;
+
 /**
  * @author fuzy
  * @version 1.0
@@ -10,5 +14,5 @@ package com.fuzy.example.mapper;
  */
 public interface UserMapper {
 
-    void selectUserList();
+    List<User> selectUserList();
 }
