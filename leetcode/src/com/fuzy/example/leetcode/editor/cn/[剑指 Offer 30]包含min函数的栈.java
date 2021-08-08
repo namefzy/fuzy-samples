@@ -34,6 +34,11 @@ import java.util.Stack;
 //leetcode submit region begin(Prohibit modification and deletion)
 class MinStack {
 
+    /**
+     * A栈是原栈，B栈是取最小值的栈。
+     * A栈push元素x的时候，B栈的顶部元素要大于x时，才在B栈存放元素
+     * B栈弹出最小值，如果A栈弹出的值大于B栈的值，则B栈不pop操作；
+     */
     Stack<Integer> A, B;
     public MinStack() {
         A = new Stack<>();
