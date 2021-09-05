@@ -35,10 +35,15 @@ import java.util.Stack;
 //leetcode submit region begin(Prohibit modification and deletion)
 class CQueue {
 
+    /**
+     * 普通的栈
+     */
     private Stack<Integer> stack1;
 
+    /**
+     * 模拟队列的栈
+     */
     private Stack<Integer> stack2;
-
 
     public CQueue() {
         stack1 = new Stack<>();
@@ -47,7 +52,6 @@ class CQueue {
     
     public void appendTail(int value) {
         stack1.push(value);
-
     }
     
     public int deleteHead() {
