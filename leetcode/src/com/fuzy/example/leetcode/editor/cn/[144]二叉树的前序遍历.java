@@ -1,3 +1,4 @@
+
 package com.fuzy.example.leetcode.editor.cn;//给你二叉树的根节点 root ，返回它节点值的 前序 遍历。
 //
 // 
@@ -55,9 +56,8 @@ package com.fuzy.example.leetcode.editor.cn;//给你二叉树的根节点 root �
 
 //leetcode submit region begin(Prohibit modification and deletion)
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Stack;
+import javax.sound.sampled.Line;
+import java.util.*;
 
 /**
  * Definition for a binary tree node.
@@ -75,27 +75,36 @@ import java.util.Stack;
  * }
  */
 class Solution107 {
-    //跟-》左-》右
+    //根-》左-》右
     public List<Integer> preorderTraversal(TreeNode root) {
         List<Integer> list = new ArrayList<>();
         if(root==null){
             return list;
         }
-        Stack<TreeNode> stack = new Stack<>();
-        stack.push(root);
-        while (!stack.isEmpty()){
-            TreeNode peek = stack.peek();
-            stack.pop();
-            list.add(peek.val);
-            if(peek.right!=null){
-                stack.push(peek.right);
+        Deque<TreeNode> stack = new LinkedList<>();
+        TreeNode node = root;
+        while (!stack.isEmpty()||node!=null){
+            while (node!=null){
+                list.add(node.val);
+                stack.push(node);
+                node = node.left;
             }
-            if(peek.left!=null){
-                stack.push(peek.left);
-            }
+            node = stack.pop();
+            node = node.right;
         }
         return list;
     }
+    List<Integer> list = new ArrayList<>();
+    public List<Integer> preorderTraversal1(TreeNode root){
+        if(root==null){
+            return list;
+        }
+        list.add(root.val);
+        preorderTraversal1(root.left);
+        preorderTraversal1(root.right);
+        return list;
+    }
+
     public class TreeNode {
      int val;
      TreeNode left;
