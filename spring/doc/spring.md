@@ -303,9 +303,129 @@ public class AwareInterfaceDependencyInjectionDemo implements BeanFactoryAware, 
 }
 ```
 
-#### 循环依赖
+### Spring Bean生命周期
 
-##### 什么是循环依赖
+#### `BeanDefinition`
+
+##### 配置
+
+- 面向资源
+
+  - xml资源
+  - properties资源
+
+- 面向注解
+
+  `@Configuration` `@Bean`
+
+- 面向`API`
+
+  `BeanDefinitionBuilder` `GenericBeanDefinition`
+
+##### 解析
+
+- 面向资源
+
+  - `BeanDefinitionReader`
+  - `xml`解析 `BeanDefinitionParser`
+
+- 面向注解
+
+  `AnnotatedBeanDefinitionReader`
+
+注册阶段
+
+ 	`BeanDefinitionRegistry`接口
+
+##### 合并阶段
+
+​	父子`BeanDefinition`合并，例如有继承关系的类。
+
+#### Spring Bean
+
+​	`Spring Bean`生命周期都脱离不了`org.springframework.beans.factory.support.AbstractBeanFactory#doGetBean`该方法，下面就逐一来分解该方法。
+
+##### Spring Bean实例化前阶段
+
+- `org.springframework.beans.factory.config.InstantiationAwareBeanPostProcessor#postProcessBeforeInstantiation`
+
+##### Spring Bean实例化阶段
+
+- 传统方式
+
+  `org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory#instantiateBean`
+
+- 构造器依赖注入
+
+  `org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory#autowireConstructor`
+
+##### Spring Bean实例化后阶段
+
+- `org.springframework.beans.factory.config.InstantiationAwareBeanPostProcessor#postProcessAfterInstantiation`
+
+##### Spring Bean属性赋值前阶段
+
+- `org.geekbang.thinking.in.spring.bean.lifecycle.MyInstantiationAwareBeanPostProcessor#postProcessProperties`
+
+##### Spring Bean属性赋值阶段
+
+- `org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory#populateBean`
+
+##### Spring Bean Aware接口回调
+
+- `Spring Aware`接口 
+  - `BeanNameAware` 
+  -  `BeanClassLoaderAware` 
+  - `BeanFactoryAware` 
+  - `EnvironmentAware` 
+  - `EmbeddedValueResolverAware `
+  - `ResourceLoaderAware` 
+  - `ApplicationEventPublisherAware` 
+  - `MessageSourceAware` 
+  - `ApplicationContextAware`
+
+##### `Spring Bean`初始化前阶段
+
+- `org.springframework.beans.factory.config.BeanPostProcessor#postProcessBeforeInitialization`
+
+##### `Spring Bean`初始化阶段
+
+- `@PostConstruct 标注方法`
+  - `org.springframework.beans.factory.annotation.InitDestroyAnnotationBeanPostProcessor#postProcessBeforeInitialization` 
+- `实现 InitializingBean 接口的 afterPropertiesSet() 方法` 
+  - `org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory#invokeInitMethods`
+- `自定义初始化方法`
+  - `org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory#invokeCustomInitMethod`
+
+##### `Spring Bean`初始化后阶段
+
+- `org.geekbang.thinking.in.spring.bean.lifecycle.MyInstantiationAwareBeanPostProcessor#postProcessAfterInitialization`
+
+##### `Spring Bean`初始化完成阶段
+
+- `org.geekbang.thinking.in.spring.bean.lifecycle.UserHolder#afterSingletonsInstantiated`
+
+##### `Spring Bean`销毁前阶段
+
+- `org.geekbang.thinking.in.spring.bean.lifecycle.MyDestructionAwareBeanPostProcessor#postProcessBeforeDestruction`
+
+`Spring Bean`销毁
+
+- `@PreDestroy 标注方法` 
+- `实现 DisposableBean 接口的 destroy() 方法` 
+- `自定义销毁方法`
+
+##### `Spring Bean`垃圾回收
+
+- `关闭 Spring 容器（应用上下文）` 
+- `执行 GC` 
+- `Spring Bean 覆盖的 finalize() 方法被回调`
+
+
+
+### 循环依赖
+
+#### 什么是循环依赖
 
 > 什么是循环依赖？即对象A拥有属性B，对象B拥有属性A，在IoC容器进行依赖注入时就会发生A依赖于，同时B依赖A的情形。
 
@@ -322,7 +442,7 @@ public class AwareInterfaceDependencyInjectionDemo implements BeanFactoryAware, 
 - 第一种构造方法注入的情况下，在new对象的时候就会堵塞住了，其实也就是”先有鸡还是先有蛋“的历史难题。
 - 第二种setter方法&&多例的情况下，每一次`getBean()`时，都会产生一个新的Bean，如此反复下去就会有无穷无尽的Bean产生了，最终就会导致OOM问题的出现。
 
-##### Spring如何解决循环依赖
+#### Spring如何解决循环依赖
 
 ![spring循环依赖](https://image-1301573777.cos.ap-chengdu.myqcloud.com/spring循环依赖.png)
 
