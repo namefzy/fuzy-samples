@@ -48,7 +48,7 @@ class SolutionOffer54 {
     public int kthLargest(TreeNode root, int k) {
         this.k = k;
         dfs(root);
-        return 0;
+        return res;
     }
 
     private void dfs(TreeNode root) {
