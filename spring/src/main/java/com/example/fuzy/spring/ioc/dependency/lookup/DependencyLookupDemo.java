@@ -3,6 +3,7 @@ package com.example.fuzy.spring.ioc.dependency.lookup;
 import com.example.fuzy.spring.ioc.dependency.lookup.annotation.Super;
 import com.example.fuzy.spring.ioc.dependency.lookup.domain.Parent;
 import com.example.fuzy.spring.ioc.dependency.lookup.domain.User;
+import org.junit.Test;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.HierarchicalBeanFactory;
 import org.springframework.beans.factory.ListableBeanFactory;
@@ -20,19 +21,36 @@ import java.util.Map;
 /**
  * @author fuzy
  * @version 1.0
- * @Description 依赖查找
- * @company 上海有分科技发展有限公司
- * @email fuzy@ufen.cn
  * @date 2021/2/7 10:23
  */
 public class DependencyLookupDemo {
 
-    public static void main(String[] args) {
+    @Bean
+    public String helloWorld(){
+        return "Hello,World";
+    }
+
+    @Bean
+    public User user(){
+        User user = new User();
+        user.setId(1);
+        user.setName("fuzy");
+        return user;
+    }
+
+    @Test
+    public void testByAnnotation(){
+
+    }
+
+    @Test
+    public void testByXml(){
         ApplicationContext applicationContext = new ClassPathXmlApplicationContext("META-INF\\lookup\\dependency-lookup-context.xml");
         //单一类型查找
         lookupByName(applicationContext);
         lookupByType(applicationContext);
         lookupByBeanProvider(applicationContext);
+        lookupInLazy(applicationContext);
 
         //集合类型查找- ListableBeanFactory
         lookupCollectionByType(applicationContext);
@@ -40,6 +58,11 @@ public class DependencyLookupDemo {
 
         //层次性依赖查找
         lookupByHierarchical();
+
+    }
+
+    private void lookupInLazy(ApplicationContext applicationContext) {
+        applicationContext.getBean("")
     }
 
     private static void lookupByHierarchical() {
@@ -78,7 +101,7 @@ public class DependencyLookupDemo {
     private static boolean containsBean(HierarchicalBeanFactory beanFactory, String beanName) {
         BeanFactory parentBeanFactory = beanFactory.getParentBeanFactory();
         if (parentBeanFactory instanceof HierarchicalBeanFactory) {
-            HierarchicalBeanFactory parentHierarchicalBeanFactory = HierarchicalBeanFactory.class.cast(parentBeanFactory);
+            HierarchicalBeanFactory parentHierarchicalBeanFactory = (HierarchicalBeanFactory) parentBeanFactory;
             if (containsBean(parentHierarchicalBeanFactory, beanName)) {
                 return true;
             }
@@ -100,19 +123,6 @@ public class DependencyLookupDemo {
         // 加载配置
         reader.loadBeanDefinitions(location);
         return beanFactory;
-    }
-
-    @Bean
-    public String helloWorld(){
-        return "Hello,World";
-    }
-
-    @Bean
-    public User user(){
-        User user = new User();
-        user.setId(1);
-        user.setName("fuzy");
-        return user;
     }
 
     /**

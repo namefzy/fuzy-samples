@@ -10,8 +10,7 @@ import java.lang.reflect.Method;
  * @author fuzy
  * @version 1.0
  * @Description 反射测试类
- * @company 上海有分科技发展有限公司
- * @email fuzy@ufen.cn
+  
  * @date 2021/5/28 17:37
  */
 public class ReflectDemo {

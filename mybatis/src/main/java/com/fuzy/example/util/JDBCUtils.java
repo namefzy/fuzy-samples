@@ -10,8 +10,7 @@ import java.util.ResourceBundle;
  * @author fuzy
  * @version 1.0
  * @Description 原生的数据库链接工具类
- * @company 上海有分科技发展有限公司
- * @email fuzy@ufen.cn
+  
  * @date 2021/5/13 11:49
  */
 public class JDBCUtils {

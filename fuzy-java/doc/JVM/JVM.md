@@ -274,7 +274,7 @@ CA FE BA BE 00 00 00 34  00 43 0A 00 0A 00 2F 08
 
   > 需要注意的两点内存**分配的对象**以及**初始化的类型**
 
-  **内存分配的对象**：要明白首先要知道Java 中的变量有**类变量**以及**类成员变量**两种类型，类变量指的是被 static 修饰的变量，而其他所有类型的变量都属于类成员变量。在准备阶段，JVM 只会为**类变量**分配内存，而不会为**类成员变量**分配内存。**类成员变量**的内存分配需要等到**初始化**阶段才开始，如下代码：
+  **内存分配的对象**：要明白首先要知道Java 中的变量有**类变量**以及**类成员变量**两种类型，**类变量指的是被 static 修饰的变量**，而其他所有类型的变量都属于类成员变量。在准备阶段，JVM 只会为**类变量**分配内存，而不会为**类成员变量**分配内存。**类成员变量**的内存分配需要等到**初始化**阶段才开始，如下代码：
 
   ```java
   //准备阶段只会为static修饰的变量分配内存
@@ -866,6 +866,14 @@ protected Class<?> loadClass(String name, boolean resolve)
   -XX：+UseG1GC
   ```
 
+- Young区GC会发生`stop the world`吗？
+
+  > 不管什么 GC，都会发送 stop-the-world，区别是发生的时间长短。而这个时间跟垃圾收集器又有关 系，Serial、PartNew、Parallel Scavenge 收集器无论是串行还是并行，都会挂起用户线程，而 CMS 和 G1 在并发标记时，是不会挂起用户线程的，但其它时候一样会挂起用户线程，stop the world 的时 间相对来说就小很多了。
+
+- major GC 和full GC的区别
+
+  > Major GC在很多参考资料中是等价于 Full GC 的。一般情况下，一次 Full GC 将会对年轻代、老年代、元空间以及堆外内存进行垃圾回收。触 发 Full GC 的原因有很多：当年轻代晋升到老年代的对象大小，并比目前老年代剩余的空间大小还要大 时，会触发 Full GC；当老年代的空间使用率超过某阈值时，会触发 Full GC；当元空间不足时（JDK1.7 永久代不足），也会触发 Full GC；当调用`System.gc()`也会安排一次 Full GC。
+
 ## 5、JVM实战
 
 #### 常用命令
@@ -1021,15 +1029,5 @@ gcplot：https://it.gcplot.com/
 ### JVM性能优化指南
 
 ![image-20210130222931415](https://image-1301573777.cos.ap-chengdu.myqcloud.com/image-20210130222931415.png)
-
-## 6、常见问题
-
-- Young区GC会发生`stop the world`吗？
-
-  > 不管什么 GC，都会发送 stop-the-world，区别是发生的时间长短。而这个时间跟垃圾收集器又有关 系，Serial、PartNew、Parallel Scavenge 收集器无论是串行还是并行，都会挂起用户线程，而 CMS 和 G1 在并发标记时，是不会挂起用户线程的，但其它时候一样会挂起用户线程，stop the world 的时 间相对来说就小很多了。
-
-- major GC 和full GC的区别
-
-  > Major GC在很多参考资料中是等价于 Full GC 的。一般情况下，一次 Full GC 将会对年轻代、老年代、元空间以及堆外内存进行垃圾回收。触 发 Full GC 的原因有很多：当年轻代晋升到老年代的对象大小，并比目前老年代剩余的空间大小还要大 时，会触发 Full GC；当老年代的空间使用率超过某阈值时，会触发 Full GC；当元空间不足时（JDK1.7 永久代不足），也会触发 Full GC；当调用`System.gc()`也会安排一次 Full GC。
 
 【参考连接】：https://www.cnblogs.com/yichunguo/category/1591562.html

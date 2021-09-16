@@ -4,8 +4,7 @@ package com.example.fuzy.spring.ioc.dependency.lookup.domain;
  * @author fuzy
  * @version 1.0
  * @Description
- * @company 上海有分科技发展有限公司
- * @email fuzy@ufen.cn
+  
  * @date 2021/2/7 10:25
  */
 public class Parent {

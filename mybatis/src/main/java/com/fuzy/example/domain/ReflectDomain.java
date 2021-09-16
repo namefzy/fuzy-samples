@@ -4,8 +4,7 @@ package com.fuzy.example.domain;
  * @author fuzy
  * @version 1.0
  * @Description
- * @company 上海有分科技发展有限公司
- * @email fuzy@ufen.cn
+  
  * @date 2021/5/28 17:40
  */
 public class ReflectDomain {

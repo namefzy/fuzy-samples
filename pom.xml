@@ -30,6 +30,7 @@
         <module>design-pattern</module>
         <module>oauth2</module>
         <module>mybatis</module>
+        <module>spring-cloud-alibaba-samples/spring-cloud-alibaba-rocketmq-samples</module>
 
     </modules>
 

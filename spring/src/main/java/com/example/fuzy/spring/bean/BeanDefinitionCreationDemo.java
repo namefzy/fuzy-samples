@@ -10,8 +10,7 @@ import org.springframework.beans.factory.support.GenericBeanDefinition;
  * @author fuzy
  * @version 1.0
  * @Description 创建bean的方式
- * @company 上海有分科技发展有限公司
- * @email fuzy@ufen.cn
+  
  * @date 2021/2/8 17:48
  */
 public class BeanDefinitionCreationDemo {

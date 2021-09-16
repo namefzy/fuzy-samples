@@ -294,7 +294,7 @@ CREATE FULLTEXT INDEX idx_name ON `user`(`name`);
 
 下面示例来了解这四个隔离级别：
 
-![image-20210319082838757](C:\Users\fuzy\AppData\Roaming\Typora\typora-user-images\image-20210319082838757.png)
+![image-20210319082838757](https://image-1301573777.cos.ap-chengdu.myqcloud.com/image-20210319082838757.png)
 
 我们来看看在不同的隔离级别下，事务 A 会有哪些不同的返回结果，也就是图里面 V1、V2、 V3 的返回值分别是什么。
 
@@ -328,7 +328,7 @@ CREATE FULLTEXT INDEX idx_name ON `user`(`name`);
 
 如下图所示，就是一个记录被多个事务连续更新后的状态：
 
-![image-20210329220005279](C:\Users\fuzy\AppData\Roaming\Typora\typora-user-images\image-20210329220005279.png)
+![image-20210329220005279](https://image-1301573777.cos.ap-chengdu.myqcloud.com/image-20210329220005279.png)
 
 ​																						**行状态变更图**
 
@@ -678,6 +678,10 @@ insert into t values(0,0,0),(5,5,5),
 1、redo log满了，这时候系统不能再接受更新了，所有的更新都必须堵住，这时候的更新数为0
 
 2、内纯不够用了，要先将脏页写到磁盘。这种情况是常态
+
+3、数据库空余的时候
+
+4、mysql正常关闭的时候
 
 **bin log的三种格式**
 

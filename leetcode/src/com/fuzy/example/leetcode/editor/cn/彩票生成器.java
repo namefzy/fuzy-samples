@@ -7,8 +7,7 @@ import java.util.*;
  * @author fuzy
  * @version 1.0
  * @Description
- * @company 上海有分科技发展有限公司
- * @email fuzy@ufen.cn
+  
  * @date 2020/12/17 10:22
  */
 public class 彩票生成器 {

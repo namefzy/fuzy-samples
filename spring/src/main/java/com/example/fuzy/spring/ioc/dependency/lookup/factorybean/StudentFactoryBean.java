@@ -6,8 +6,7 @@ import org.springframework.beans.factory.FactoryBean;
  * @author fuzy
  * @version 1.0
  * @Description
- * @company 上海有分科技发展有限公司
- * @email fuzy@ufen.cn
+  
  * @date 2021/2/7 18:01
  */
 public class StudentFactoryBean implements FactoryBean<Student> {

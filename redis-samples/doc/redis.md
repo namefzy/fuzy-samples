@@ -4,6 +4,155 @@
 
 ​	Redis的特点：单线程、内存结构、多路复用。
 
+## 2、集群搭建
+
+`redis`版本6.0.6，使用三台虚拟机，3主3从的配置，主机ip分别为`192.168.56.100`、`192.168.56.101`、`192.168.56.102`首先分别在对应的虚拟机上指定redis主从的配置文件：
+
+以`192.168.56.100`服务器为例创建主从服务器：
+
+```shell
+cd /home/user/redis-6.0.6
+mkdir redis-cluster
+cd redis-cluster
+mkdir 7291 7292
+cp /home/user/redis-6.0.6/config/redis.conf /home/user/redis-6.0.6/redis-cluster/7291
+cp /home/user/redis-6.0.6/config/redis.conf /home/user/redis-6.0.6/redis-cluster/7292
+```
+
+修改7291目录下配置文件`redis.config`
+
+```shell
+port 7291
+daemonize yes
+protected-mode no
+dir /usr/local/soft/redis-5.0.5/redis-cluster/7291/
+cluster-enabled yes
+cluster-config-file nodes-7291.conf
+cluster-node-timeout 5000
+appendonly yes
+pidfile /var/run/redis_7291.pid
+```
+
+注意如果外网搭建需要配置以下参数：
+
+```shell
+# 实际给各节点网卡分配的IP（公网IP）
+cluster-announce-ip 47.xx.xx.xx
+# 节点映射端口
+cluster-announce-port ${PORT}
+# 节点总线端口
+cluster-announce-bus-port 1${PORT}
+```
+
+批量替换7292文件夹下的`redis.config`文件内容
+
+```shell
+cd /home/user/redis-6.0.6/redis-cluster
+sed -i 's/7291/7292/g' 7292/redis.conf
+```
+
+服务器`192.168.56.101`、`192.168.56.102`也做类似的操作，然后启动三台服务器中所有的redis程序：
+
+```shell
+./src/redis-server redis-cluster/7291/redis.conf
+./src/redis-server redis-cluster/7292/redis.conf
+./src/redis-server redis-cluster/7293/redis.conf
+./src/redis-server redis-cluster/7294/redis.conf
+./src/redis-server redis-cluster/7295/redis.conf
+./src/redis-server redis-cluster/7296/redis.conf
+```
+
+创建集群：
+
+```txt
+redis-cli --cluster create 192.168.56.100:7291 192.168.56.100:7292 192.168.56.102:7293 192.168.56.102:7294 192.168.56.101:7295 192.168.56.101:7296 --cluster-replicas 1
+```
+
+展示出如下信息，代表集群创建成功
+
+```shell
+>>> Performing hash slots allocation on 6 nodes...
+Master[0] -> Slots 0 - 5460
+Master[1] -> Slots 5461 - 10922
+Master[2] -> Slots 10923 - 16383
+Adding replica 192.168.56.102:7294 to 192.168.56.100:7291
+Adding replica 192.168.56.101:7296 to 192.168.56.102:7293
+Adding replica 192.168.56.100:7292 to 192.168.56.101:7295
+M: effcab530dc2d822e2e1bde724f227e35aca3f56 192.168.56.100:7291
+   slots:[0-5460] (5461 slots) master
+S: fd992018f084900934ffec3162df583296ea8481 192.168.56.100:7292
+   replicates 6b8dcbc04cf0caf87d214d97fca436fa00919dac
+M: 4fc0f148f577365d15112bc9aa9667cbbfc5ff64 192.168.56.102:7293
+   slots:[5461-10922] (5462 slots) master
+S: 774c931349ce63df80e68fc47457c540bdf93079 192.168.56.102:7294
+   replicates effcab530dc2d822e2e1bde724f227e35aca3f56
+M: 6b8dcbc04cf0caf87d214d97fca436fa00919dac 192.168.56.101:7295
+   slots:[10923-16383] (5461 slots) master
+S: bbaeb5377b0dd1da3076661de84488cd316743a3 192.168.56.101:7296
+   replicates 4fc0f148f577365d15112bc9aa9667cbbfc5ff64
+Can I set the above configuration? (type 'yes' to accept): yes
+>>> Nodes configuration updated
+>>> Assign a different config epoch to each node
+>>> Sending CLUSTER MEET messages to join the cluster
+Waiting for the cluster to join
+.
+>>> Performing Cluster Check (using node 192.168.56.100:7291)
+M: effcab530dc2d822e2e1bde724f227e35aca3f56 192.168.56.100:7291
+   slots:[0-5460] (5461 slots) master
+   1 additional replica(s)
+S: bbaeb5377b0dd1da3076661de84488cd316743a3 192.168.56.101:7296
+   slots: (0 slots) slave
+   replicates 4fc0f148f577365d15112bc9aa9667cbbfc5ff64
+S: fd992018f084900934ffec3162df583296ea8481 192.168.56.100:7292
+   slots: (0 slots) slave
+   replicates 6b8dcbc04cf0caf87d214d97fca436fa00919dac
+M: 4fc0f148f577365d15112bc9aa9667cbbfc5ff64 192.168.56.102:7293
+   slots:[5461-10922] (5462 slots) master
+   1 additional replica(s)
+S: 774c931349ce63df80e68fc47457c540bdf93079 192.168.56.102:7294
+   slots: (0 slots) slave
+   replicates effcab530dc2d822e2e1bde724f227e35aca3f56
+M: 6b8dcbc04cf0caf87d214d97fca436fa00919dac 192.168.56.101:7295
+   slots:[10923-16383] (5461 slots) master
+   1 additional replica(s)
+[OK] All nodes agree about slots configuration.
+>>> Check for open slots...
+>>> Check slots coverage...
+[OK] All 16384 slots covered.
+```
+
+### Hash槽分配
+
+创建脚本文件：
+
+```shell
+#!/bin/bash
+for ((i=0;i<20000;i++))
+do
+echo -en "helloworld" | redis-cli -h 192.168.8.207 -p 7291 -c -x set name$i >>redis.log
+done
+```
+
+授权
+
+```shell
+chmod +x setkey.sh
+./setkey.sh
+```
+
+进入redis客户端`redis-cli -p 端口`查看服务器上的节点数据：
+
+```shell
+127.0.0.1:7293> dbsize
+(integer) 6683
+127.0.0.1:7296> dbsize
+(integer) 6665
+127.0.0.1:7291> dbsize
+(integer) 6652
+```
+
+
+
 ## 2、Redis定位与特性
 
 ### 传统型关系型数据库
@@ -12,7 +161,7 @@
 
 - 它以表格的形式，基于行存储数据，是一个二维的模式。
 
-- 它存储的是结构化的数据，数据存储有固定的模式（schema），数据需要适应 表结构。
+- 它存储的是结构化的数据，数据存储有固定的模式（schema），数据需要适应表结构。
 
 - 表与表之间存在关联（Relationship）。 
 
@@ -50,11 +199,10 @@
 
 ## 4、Redis基本数据类型
 
-- redis中的过期时间不会因为修改超过而被刷新，只有当执行`set del getset`命令时，命令会清除超时时间
-
 ### String类型
 
 - Redis中key和value的大小不能超过512M
+- redis中的过期时间不会因为修改超过而被刷新，只有当执行`set del getset`命令时，命令会清除超时时间
 
 #### 基本操作
 
@@ -63,6 +211,14 @@
 OK
 > get mykey 
 "somevalue"
+
+#设置带有过期时间的key
+redis> SET key-with-expire-time "hello" EX 10086
+OK
+redis> GET key-with-expire-time
+"hello"
+redis> TTL key-with-expire-time
+(integer) 10069
 
 #key不存在时会成功
 > set mykey newval nx
@@ -77,23 +233,58 @@ OK
 (integer) 101
 ```
 
+#### 存储实现原理
+
+以`set hello world`为例，每个键值对都会有一个`dictEntry`，它的结构如下图：
+
+![image-20210601222318969](https://image-1301573777.cos.ap-chengdu.myqcloud.com/image-20210601222318969.png)
+
+如图所示，key存储在SDS中，value存储在`redisObject`对象中（五种常用的数据类型都是通过`redisObject`来存储的）
+
+##### SDS
+
+redis中存储字符串的一种实现，它有几种结构分别用于存储不同长度的字符串。
+
+字符串类型的内部编码有三种：
+
+> 1、int，存储 8 个字节的长整型（long，2^63-1）。 
+>
+> 2、embstr, 代表 embstr 格式的 SDS（Simple Dynamic String 简单动态字符串）， 存储小于 44 个字节的字符串。
+>
+>  3、raw，存储大于 44 个字节的字符串
+
 #### 应用场景
 
 - 热点数据缓存（例如报表，明星出轨），对象缓存，全页缓存。可以提升热点数据的访问速度。
+
 - 分布式Session
+
+  ```xml
+  <dependency>
+      <groupId>org.springframework.session</groupId>
+      <artifactId>spring-session-data-redis</artifactId>
+  </dependency>
+  ```
+
 - 分布式锁
+
+  set key value EX 10 NX：如果key存在则设置失败，否则10m后key过期。
+
 - 全局ID
+
+  ```shell
+  incrby userid 1000
+  ```
+
 - 计数器
 
 ### Hash类型
-
-- 键值对个数最多为2^32-1个，也就是4294967295个
 
 ![image-20210111205330282](https://image-1301573777.cos.ap-chengdu.myqcloud.com/image-20210111205330282.png)
 
 ​																											**Hash结构**
 
-如图，Hash类型属于键值对类型，但value字段只能存储字符串，不能存储其他类型。
+**如图，Hash类型属于键值对类型，但value字段只能存储字符串，不能存储其他类型。**
 
 #### 基本操作
 
@@ -116,7 +307,7 @@ OK
 
 #### 应用场景
 
-String可以做的事情，Hash都可以做。另外还有其他适用场景，**比如根据用户查询购物车信息**，我们可以设置以下结构：
+String可以做的事情，Hash都可以做(Hash更节省空间，一个key就能存储一个对象的数据)。另外还有其他适用场景，**比如根据用户查询购物车信息**，我们可以设置以下结构：
 
 key：用户 id；field：商品 id；value：商品数量。 
 
@@ -130,9 +321,8 @@ key：用户 id；field：商品 id；value：商品数量。
 
 ### List类型
 
-> Redis lists基于Linked Lists实现。也就是说该数据结构既有栈的特性也有队列的特性。
+> Redis lists基于LinkedList实现。也就是说该数据结构既有栈的特性也有队列的特性。
 >
-> list的元素个数最多为2^32-1个，也就是4294967295个。
 
 #### 基本操作
 
@@ -161,7 +351,6 @@ key：用户 id；field：商品 id；value：商品数量。
 
 #### 常用场景
 
-- 例如在评级系统中，比如社会化新闻网站 reddit.com，你可以把每个新提交的链接添加到一个list，用LRANGE可简单的对结果分页。
 - 在博客引擎实现中，你可为每篇日志设置一个list，在该list中推入博客评论，等等。
 
 #### List的阻塞操作
@@ -170,7 +359,7 @@ key：用户 id；field：商品 id；value：商品数量。
 
 ### Set类型
 
-> Redis Set 是 String 的无序排列。`SADD` 指令把新的元素添加到 set 中。对 set 也可做一些其他的操作，比如测试一个给定的元素是否存在，对不同 set 取交集，并集或差，等等。
+> Redis Set 是 String 的无序排列。`SADD` 指令把新的元素添加到 set 中。对 set 也可做一些其他的操作，比如测试一个给定的元素是否存在，对不同 set 取交集，并集或差，等等。**最大存储数量 2^32-1**
 
 #### 基本操作
 
@@ -473,7 +662,7 @@ redis> SCRIPT KILL
 
 #### 手动触发
 
-​	如果我们需要重启服务或者迁移数据，这个时候就需要手动触 RDB 快照保存。
+​	如果我们需要重启服务或者迁移数据，这个时候就需要手动触发 RDB 快照。
 
 - `save`
 
@@ -533,7 +722,7 @@ appendfilename
 
 ​	如果可以忍受一小段时间内数据的丢失，毫无疑问使用 RDB 是最好的，定时生成 RDB 快照（snapshot）非常便于进行数据库备份， 并且 RDB 恢复数据集的速度也要 比 AOF 恢复的速度要快。 否则就使用 AOF 重写。
 
-​	但是一般情况下建议不要单独使用某一种持久化机制，而 是应该两种一起用，在这种情况下,当 redis 重启的时候会优先载入 AOF 文件来恢复原始 的数据，因为在通常情况下 AOF 文件保存的数据集要比 RDB。
+​	但是一般情况下建议不要单独使用某一种持久化机制，而 是应该两种一起用，在这种情况下,当 redis 重启的时候会优先载入 AOF 文件来恢复原始 的数据，因为在通常情况下 AOF 文件保存的数据集要比 RDB完整。
 
 ## 8、Redis高可用
 
@@ -632,6 +821,25 @@ Jedis 等客户端会在本地维护一份 slot——node 的映射关系，大�
 - 数据通过异步复制，不保证数据的强一致性。
 - 多个业务使用同一套集群时，无法根据统计区分冷热数据，资源隔离性较差，容 易出现相互影响的情况。
 
+### 8、4 集群实现高可用的原理
+
+在`redis cluster`中，什么时候集群不可用，什么时候在主节点挂掉会选举`master`节点？
+
+**整个集群进入fail状态的必要条件**
+
+- 某个主节点和所有从节点全部挂掉，我们集群就进入faill状态。
+- 如果集群超过半数以上master挂掉，无论是否有slave，集群进入fail状态
+- 如果集群任意master挂掉,且当前master没有slave.集群进入fail状态
+
+**redis投票机制**
+
+- slave发现自己的master变为FAIL
+- 发起选举前，slave先给自己的`currentEpoch`加1，然后请求其它master给自己投票。slave是通过广播FAILOVER_AUTH_REQUEST包给集中的每个masters。**currentEpoch 这是一个集群状态相关的概念，可以当作记录集群状态变更的递增版本号。每个集群节点，都会通过server.cluster->currentEpoch记录当前的currentEpoch。集群节点创建时，不管是master还是slave，都置currentEpoch为0.当前节点接收到来自其他节点的包时，如果发送者的currentEpoch大于当前节点会更新currentEpoch为发送者的currentEpoch。因此，集群的所有节点从currentEpoch最终会达成一致，相当于对集群状态的认知达成了一致。**
+- slave发起投票后，会等待至少两倍NODE_TIMEOUT时长接收自己投票结果，不管NODE_TIMEOUT何值，也至少会等待2秒。
+- master接收投票后给slave响应FAILOVER_AUTH_ACK，并且在NODE_TIMEOUT*2 时间内只会给挂掉的集群节点中的一个slave节点投票。
+- 如果slave收到FAILOVER_AUTH_ACK响应的epoch值小于自己的epoch，则会直接丢弃。以但slave收到多数master的FAILOVER_AUTH_ACK则声明自己赢得选举。
+- 如果slave在两倍的NODE_TIMEOUT时间内至少2秒未赢得选举，则放弃本次选举，然后4倍NODE_TIMEOUT时间发起再次选举
+
 ## Redis常见面试题
 
 ### 数据一致性
@@ -642,7 +850,7 @@ Jedis 等客户端会在本地维护一份 slot——node 的映射关系，大�
 
 - 先更新数据库，再删除缓存
 
-  更新数据库后，删除缓存由于某种原因没执行，则下次差的依旧是旧数据。**解决方案提供一种重试机制，例如将异常捕获然后将key加入消息队列，再次消费该消息；或者监听数据库binlog机制，当数据发生改变更新key。**
+  更新数据库后，删除缓存由于某种原因没执行，则下次查的依旧是旧数据。**解决方案提供一种重试机制，例如将异常捕获然后将key加入消息队列，再次消费该消息；或者监听数据库binlog机制，当数据发生改变更新key。**
 
 - 先删除缓存，在更新数据库
 
@@ -815,6 +1023,8 @@ public class LRUCache<K,V> extends LinkedHashMap<K,V> {
 ```
 
 [redis文档](http://redisdoc.com/)
+
+
 
 
 

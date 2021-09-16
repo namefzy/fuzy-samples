@@ -12,8 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * @author fuzy
  * @version 1.0
  * @Description
- * @company 上海有分科技发展有限公司
- * @email fuzy@ufen.cn
+  
  * @date 2020/12/25 11:32
  */
 public class CountedListTest {

@@ -25,7 +25,7 @@ package com.fuzy.example.leetcode.editor.cn;//实现 strStr() 函数。
 
 
 //leetcode submit region begin(Prohibit modification and deletion)
-class Solution {
+class Solution8200 {
 
     public int strStr1(String haystack, String needle) {
         char[] haystacks = haystack.toCharArray();

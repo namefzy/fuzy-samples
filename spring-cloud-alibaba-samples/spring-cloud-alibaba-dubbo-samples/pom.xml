@@ -11,6 +11,9 @@
 
     <groupId>com.fuzy</groupId>
     <artifactId>spring-cloud-alibaba-dubbo-samples</artifactId>
-
+    <modules>
+        <module>dubbo-provider</module>
+        <module>dubbo-spi</module>
+    </modules>
 
 </project>
