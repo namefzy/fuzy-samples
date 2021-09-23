@@ -26,4 +26,4 @@
 	<li>输出结果可能非常大，所以你需要返回一个字符串而不是整数</li>
 	<li>拼接起来的数字可能会有前导 0，最后结果不需要去掉前导 0</li>
 </ul>
-<div><div>Related Topics</div><div><li>贪心</li><li>字符串</li><li>排序</li></div></div><br><div><li>👍 282</li><li>👎 0</li></div>
+<div><div>Related Topics</div><div><li>贪心</li><li>字符串</li><li>排序</li></div></div><br><div><li>👍 283</li><li>👎 0</li></div>

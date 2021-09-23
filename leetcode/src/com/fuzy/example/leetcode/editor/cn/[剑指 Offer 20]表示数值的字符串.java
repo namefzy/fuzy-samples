@@ -66,7 +66,7 @@ package com.fuzy.example.leetcode.editor.cn;//请实现一个函数用来判断�
 // 示例 4： 
 //
 // 
-//输入：s = "    .1  "
+//输入：s = "    .1  "
 //输出：true
 // 
 //
@@ -78,15 +78,14 @@ package com.fuzy.example.leetcode.editor.cn;//请实现一个函数用来判断�
 // 1 <= s.length <= 20 
 // s 仅含英文字母（大写和小写），数字（0-9），加号 '+' ，减号 '-' ，空格 ' ' 或者点 '.' 。 
 // 
-// Related Topics 数学 
-// 👍 192 👎 0
+// Related Topics 字符串 👍 241 👎 0
 
 
 //leetcode submit region begin(Prohibit modification and deletion)
-class Solution1020 {
+class SolutionOffer20 {
+    public static java.util.regex.Pattern P = java.util.regex.Pattern.compile("\\s*[+-]?((\\d*\\.?\\d+)|(\\d+\\.?))([eE][+-]?\\d+)?\\s*");
     public boolean isNumber(String s) {
-
-        return false;
+        return P.matcher(s).matches();
     }
 }
 //leetcode submit region end(Prohibit modification and deletion)
