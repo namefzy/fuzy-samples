@@ -41,7 +41,7 @@ class SolutionLCP40 {
      * @param cnt
      * @return
      */
-    public  int maxmiumScore(int[] cards, int cnt) {
+    public static int maxmiumScore(int[] cards, int cnt) {
         //[9,8,2,1]
         Arrays.sort(cards);
         //存储所有奇数的前缀和
@@ -76,6 +76,10 @@ class SolutionLCP40 {
         }
         return ans;
 
+    }
+
+    public static void main(String[] args) {
+        maxmiumScore(new int[]{1,2,8,9,10,20,30},3);
     }
 }
 //leetcode submit region end(Prohibit modification and deletion)
