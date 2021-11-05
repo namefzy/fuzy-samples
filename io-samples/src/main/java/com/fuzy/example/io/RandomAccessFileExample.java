@@ -6,7 +6,7 @@ import java.io.*;
  * @author fuzy
  * @date 2021/10/30 21:54
  */
-public class RandomAccessFileDemo {
+public class RandomAccessFileExample {
 
     public static void main(String[] args)throws Exception {
 

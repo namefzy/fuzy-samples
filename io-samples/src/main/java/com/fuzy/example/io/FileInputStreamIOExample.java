@@ -7,10 +7,10 @@ import java.io.*;
  * @author fuzy
  * @date 2021/10/29 22:02
  */
-public class FileInputStreamDemo {
+public class FileInputStreamIOExample {
 
     public static void main(String[] args) throws Exception{
-        FileInputStream fis = new FileInputStream(new File("C:\\Users\\fuzy\\Desktop\\data.txt"));
+    FileInputStream fis = new FileInputStream(new File("C:\\Users\\fuzy\\Desktop\\data.txt"));
         FileOutputStream fos = new FileOutputStream("C:\\Users\\fuzy\\Desktop\\copy.txt");
         try{
 //            readSingleByte(fis,fos);

@@ -9,7 +9,7 @@ import java.io.IOException;
  * @author fuzy
  * @date 2021/10/30 21:17
  */
-public class FileWriterDemo {
+public class FileWriterIOExample {
     public static void main(String[] args) throws IOException {
         FileReader fr = new FileReader("C:\\Users\\fuzy\\Desktop\\data.txt");
         FileWriter fw = new FileWriter("C:\\Users\\fuzy\\Desktop\\copy.txt");
