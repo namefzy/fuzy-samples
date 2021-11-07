@@ -699,10 +699,205 @@ public static void main(String[] args)throws Exception {
   SelectionKey key = channel.register(selector,Selectionkey.OP_READ);
   ```
 
-  `channel.register(selector,Selectionkey.OP_READ)`第二个参数是代表`Selector`可以监听哪些事件。有以下四种事件可以被监听：
+  `channel.register(selector,Selectionkey.OP_READ)`第二个参数是代表`Selector`可以监听`Channel`哪些事件。**Channel有以下四种事件可以被监听：**
 
-  - `Connnect`
-  - `Accept`
-  - `Read`
-  - `Write`
+  - `Connnect`：`SelectionKey.OP_CONNECT`
+  - `Accept`：`SelectionKey.OP_ACCEPT`
+  - `Read`：`SelectionKey.OP_READ`
+  - `Write`：`SelectionKey.OP_WRITE`
+
+  如果想对多种事情进行监听，可以使用位操作符来进行连接，如下：
+
+  ```java
+  int interestSet = SelectionKey.OP_READ | SelectionKey.OP_WRITE;
+  ```
+
+- `SelectionKey`对象
+
+  ![image-20211106172912547](https://image-1301573777.cos.ap-chengdu.myqcloud.com/image-20211106172912547.png)
+
+  - `interestOps`
+
+    监听的事件类型集合，通过位操作符表示。
+
+  - `ready`
+
+    `ready`集合是代表监听`channel`已经准备就绪的操作的集合，通常可以使用以下四种方法来表示：
+
+    ```java
+    selectionKey.isAcceptable();
+    selectionKey.isConnectable();
+    selectionKey.isReadable();
+    selectionKey.isWritable();
+    ```
+
+  - `selector`
+
+    ```java
+    //通过`SelectionKey`获取Selector
+    Selector selector = selectionKey.selector();
+    ```
+
+  - `channel`
+
+    ```java
+    //通过`SelectionKey`获取channel
+    Channel  channel  = selectionKey.channel();
+    ```
+
+  - `attachment`
+
+    > 可以将一个对象或者更多信息附着到SelectionKey上，这样就能方便的识别某个给定的`channel`
+
+    ```java
+    //类似与map；调用该方法后相当于加到对应的map中，一次只能附加一个对象； 调用此方法会导致丢弃任何先前的附加对象。 可以通过附加null来丢弃当前对象。稍后可以通过attachment方法检索附加的对象。 
+    selectionKey.attach(theObject);
+    Object attachedObj = selectionKey.attachment();
+    
+    //第二种方式
+    SelectionKey key = channel.register(selector,SelectionKey.OP_READ,buffer);
+    ```
+
+##### Select选择Channel
+
+​	一旦向`Selector`注册了一或多个通道，就可以调用几个重载的`select()`方法。这些方法返回你所感兴趣的事件（如连接、接受、读或写）已经准备就绪的那些通道。换句话说，如果你对“读就绪”的通道感兴趣，`select()`方法会返回读事件已经就绪的那些通道。`select`方法返回的就是上次调用`select()`方法后有多少通道变成就绪状态。
+
+- `int select()`
+
+  `select()`阻塞到至少有一个通道在你注册的事件上就绪了。
+
+- `int select(long timeout)`
+
+  和`select()`一样，只不过阻塞会有timeout毫秒限制。
+
+- `selectNow()`
+
+  不会阻塞，不管什么通道就绪都立刻返回。
+
+##### SelectedKeys方法
+
+​	一旦调用了`select()`方法，并且返回值表明有一个或更多个`Channel`就绪了，然后可以通过调用`selector`的`selectedKeys`()方法，访问“已选择键集（selected key set）”中的就绪`Channel`。如下所示：
+
+```java
+Set selectedKeys = selector.selectedKeys();
+```
+
+​	当像`Selector`注册`Channel`时，`Channel.register()`方法会返回一个`SelectionKey`对象。这个对象代表了注册到该`Selector`的通道。可以通过`SelectionKey`的`selectedKeySet()`方法访问这些对象。可以遍历这个已选择的键集合来访问就绪的通道。如下：
+
+```java
+Set selectedKeys = selector.selectedKeys();
+Iterator keyIterator = selectedKeys.iterator();
+while (keyIterator.hasNext()) {
+    SelectionKey key = (SelectionKey) keyIterator.next();
+    if (key.isAcceptable()) {
+        // a connection was accepted by a ServerSocketChannel.
+    } else if (key.isConnectable()) {
+        // a connection was established with a remote server.
+    } else if (key.isReadable()) {
+        // a channel is ready for reading
+    } else if (key.isWritable()) {
+        // a channel is ready for writing
+    }
+    //Selector不会自己从已选择键集中移除SelectionKey实例。必须在处理完通道时自己移除。下次该通道变成就绪时，Selector会再次将其放入已选择键集中。
+    keyIterator.remove();
+}
+```
+
+##### Selector代码示例
+
+```java
+public static void main(String[] args) throws Exception {
+    ServerSocket socket = new ServerSocket(8080);
+    ServerSocketChannel channel = socket.getChannel();
+    //获取selector
+    Selector selector = Selector.open();
+    //设置位非阻塞连接
+    channel.configureBlocking(false);
+    //注册读事件
+    SelectionKey key = channel.register(selector, SelectionKey.OP_READ);
+    while (true){
+        //获取已准备好的事件个数
+        int readyChannels = selector.select();
+        //当readyChannels等于0时，继续循环
+        if(readyChannels==0){
+            continue;
+        }
+        //获取就绪的channel集合
+        Set<SelectionKey> selectionKeys = selector.selectedKeys();
+        Iterator<SelectionKey> iterator = selectionKeys.iterator();
+        while (iterator.hasNext()){
+            if(key.isAcceptable()) {
+                // a connection was accepted by a ServerSocketChannel.
+            } else if (key.isConnectable()) {
+                // a connection was established with a remote server.
+            } else if (key.isReadable()) {
+                // a channel is ready for reading
+            } else if (key.isWritable()) {
+                // a channel is ready for writing
+            }
+            //移除已处理的channel
+            iterator.remove();
+
+        }
+    }
+}
+```
+
+#### SocketChannel
+
+> `Java NIO`中的`SocketChannel`是一个连接到TCP网络套接字的`channel`。
+
+##### 打开SocketChannel
+
+```java
+//打开一个SocketChannel并连接到互联网上的某台服务器。
+SocketChannel socketChannel = SocketChannel.open();
+socketChannel.connect(new InetSocketAddress("http://jenkov.com", 80));
+```
+
+##### 非阻塞模式
+
+如果`SocketChannel`在非阻塞模式下，此时调用`connect()`，该方法可能在连接建立之前就返回了。为了确定连接是否建立，可以调用`finishConnect()`的方法。如下代码所示：
+
+```java
+socketChannel.configureBlocking(false);
+socketChannel.connect(new InetSocketAddress("http://jenkov.com", 80));
+
+while(!socketChannel.finishConnect() ){
+    //wait, or do something else...
+}
+
+```
+
+##### 读写
+
+```java
+SocketChannel socketChannel = SocketChannel.open(
+new InetSocketAddress("www.baidu.com", 80));
+//设置成非阻塞模式
+socketChannel.configureBlocking(false);
+ByteBuffer byteBuffer = ByteBuffer.allocate(16);
+//将数据读到缓冲区
+socketChannel.read(byteBuffer);
+socketChannel.close();
+```
+
+#### ServerSocketChannel
+
+> `ServerSocketChannel`是一个可以监听新进来的TCP连接的通道。
+
+```java
+ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
+serverSocketChannel.socket().bind(new InetSocketAddress(9999));
+//设置成非阻塞模式
+serverSocketChannel.configureBlocking(false);
+
+while(true){
+    //监听连接；在非阻塞模式下，accept()方法会立即返回，如果没有新进来的连接，返回null
+    SocketChannel socketChannel = serverSocketChannel.accept();
+    if(socketChannel != null){
+        //do something with socketChannel...
+    }
+}
+```
 

@@ -1,9 +1,11 @@
 package com.fuzy.example.nio;
 
 import java.io.*;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
 
 /**
  * @author fuzy
@@ -11,16 +13,9 @@ import java.nio.channels.ServerSocketChannel;
  */
 public class SocketChannelExample {
     public static void main(String[] args) throws IOException {
-        int port = 8080;
-        String host = "localhost";
+        SocketChannel socketChannel = SocketChannel.open();
+        socketChannel.connect(new InetSocketAddress("http://jenkov.com", 80));
 
-        // 创建一个套接字并将其连接到指定端口号
-        Socket socket = new Socket(host, port);
-        DataInputStream dis = new DataInputStream(
-                new BufferedInputStream(socket.getInputStream()));
-
-        DataOutputStream dos = new DataOutputStream(
-                new BufferedOutputStream(socket.getOutputStream()));
 
     }
 }

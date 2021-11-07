@@ -88,6 +88,96 @@ public class SortExample {
         Arrays.stream(nums).forEach(System.out::println);
     }
 
+    @Test
+    public void quickSort(){
+        int[] nums = new int[]{3,4,8,5,1,7,2};
+        fastSort(nums,0,nums.length-1);
+        Arrays.stream(nums).forEach(System.out::println);
+    }
+
+    public void fastSort(int[] nums,int left,int right){
+        if(nums.length<1||left>right){
+            return;
+        }
+        int pivotIndex = partition(nums,left,right);
+        if(pivotIndex>left){
+            fastSort(nums,left,pivotIndex-1);
+        }
+        if(pivotIndex<right){
+            fastSort(nums,pivotIndex+1,right);
+        }
+    }
+
+    public int partition(int[] nums,int left,int right){
+        int l = left;
+        int pivot = nums[left];
+        //该循环以left索引位置为基准值，将所有小于pivot的值放到left索引后面，并且记录最后一次小于基准值的索引位置
+        for (int i = l+1; i <= right; i++) {
+            //如果基准值大于后边的数，则交换l++与i的值
+            if(pivot>nums[i]){
+                swap(nums,++l,i);
+            }
+        }
+        //将基准值与最后一次小于基准值的交换，确保基准值左边的都小于等于基准值，右边的大于基准值
+        swap(nums,left,l);
+        return l;
+    }
+
+    public void quickSort2(int[] arr,int low,int high){
+        int start = low;
+        int end = high;
+        int key = arr[start];
+        while (start != end) {
+            //从右向左遍历，当遍历的数小于key时，跳出循环
+            while (start<end&&key<=arr[end]){
+                end--;
+            }
+            //从左遍历，当遍历的结果大于key时，跳出循环
+            while(start<end&&key>=arr[start]){
+                start++;
+            }
+            //交换start和end，最终的结果确保start位置的数全都小于等key
+            if(start!=end){
+                swap(arr,start,end);
+            }
+        }
+        //交换start和low，使得key前面的数全都小于key，后面的数全都大于key
+        swap(arr,start,low);
+        if (start > low) {
+            quickSort2(arr, low, start - 1);
+        }
+        if (end < high) {
+            quickSort2(arr, end + 1, high);
+        }
+
+    }
+
+    @Test
+    public void countSort(){
+        //从小到大排序
+        int[] nums = new int[]{3,4,8,5,2,1,7,2};
+
+
+        int[] bucket = new int[8+1];
+        Arrays.fill(bucket,0);
+        //将nums中的值作为bucket中的key，nums中相同数字的个数作为bucket的value
+        for (int num : nums) {
+            bucket[num]++;
+        }
+
+        //记录遍历到nums数组的索引位置
+        int j = 0;
+        //遍历数组bucket，一次给数组nums赋值；因为遍历顺序是有序的，即先给nums赋值的肯定为较小的数
+        for (int i = 0; i < bucket.length; i++) {
+            //当bucket[i]<=0时，即证明i位置没有对应的数值了，此时跳出for循环
+            while (j<nums.length&&bucket[i]>0){
+                nums[j++]=i;
+                bucket[i]--;
+            }
+        }
+        Arrays.stream(nums).forEach(System.out::println);
+    }
+
     private void swap(int[] nums,int i,int j){
         int tmp = nums[i];
         nums[i] = nums[j];
