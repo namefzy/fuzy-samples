@@ -29,7 +29,7 @@ package com.fuzy.example.leetcode.editor.cn;//在一个数组 nums 中除一个�
 //7 0111
 //1 0001
 //leetcode submit region begin(Prohibit modification and deletion)
-class SolutionOffer56 {
+class SolutionOffer5611 {
 
     public static void main(String[] args) {
         singleNumber(new int[]{9,65,7,9,7,9,7});

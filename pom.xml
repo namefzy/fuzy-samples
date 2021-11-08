@@ -32,6 +32,8 @@
         <module>mybatis</module>
         <module>spring-cloud-alibaba-samples/spring-cloud-alibaba-rocketmq-samples</module>
         <module>netty-samples</module>
+        <module>io-samples</module>
+        <module>leetcode</module>
 
     </modules>
 
