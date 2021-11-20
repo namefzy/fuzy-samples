@@ -847,7 +847,7 @@ public static void main(String[] args) throws Exception {
 
 > `Java NIO`中的`SocketChannel`是一个连接到TCP网络套接字的`channel`。
 
-##### 打开SocketChannel
+**打开SocketChannel**
 
 ```java
 //打开一个SocketChannel并连接到互联网上的某台服务器。
@@ -855,7 +855,7 @@ SocketChannel socketChannel = SocketChannel.open();
 socketChannel.connect(new InetSocketAddress("http://jenkov.com", 80));
 ```
 
-##### 非阻塞模式
+**非阻塞模式**
 
 如果`SocketChannel`在非阻塞模式下，此时调用`connect()`，该方法可能在连接建立之前就返回了。为了确定连接是否建立，可以调用`finishConnect()`的方法。如下代码所示：
 
@@ -869,7 +869,7 @@ while(!socketChannel.finishConnect() ){
 
 ```
 
-##### 读写
+**读写**
 
 ```java
 SocketChannel socketChannel = SocketChannel.open(
@@ -901,3 +901,335 @@ while(true){
 }
 ```
 
+# 网络通信模型
+
+## 一、概念
+
+### 1、同步、异步、阻塞和非阻塞
+
+- 同步阻塞
+
+  
+
+  > **可以同时使用两个客户端连接服务端进行测试，所有的请求都是串行化的，伪代码如下：**
+
+  ```java
+  
+  ```
+
+  由于线程主要阻塞时间都发生在IO操作上，所以我们可以将此改造成多线程版本，伪代码如下：
+
+  ![image-20211113172557738](https://image-1301573777.cos.ap-chengdu.myqcloud.com/image-20211113172557738.png)
+
+  
+
+- 同步非阻塞
+
+  ```java
+  
+  ```
+
+  
+
+- 异步阻塞
+
+- 异步非阻塞
+
+### 2、多路复用
+
+#### 同步阻塞BIO
+
+> 连接阻塞和IO阻塞，串行化，效率较低
+
+- 单线程处理
+
+  ```java
+  public static void main(String[] args) {
+      ServerSocket serverSocket=null;
+  
+      try {
+          serverSocket=new ServerSocket(8080);
+          System.out.println("启动服务：监听端口:8080");
+          //表示阻塞等待监听一个客户端连接,返回的socket表示连接的客户端信息
+          while(true) {
+              Socket socket = serverSocket.accept(); //连接阻塞
+              System.out.println("客户端：" + socket.getPort());
+              //inputstream是阻塞的(***)
+              BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream())); //表示获取客户端的请求报文
+              String clientStr = bufferedReader.readLine();
+              System.out.println("收到客户端发送的消息：" + clientStr);
+              BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+              bufferedWriter.write("receive a message:" + clientStr + "\n");
+              bufferedWriter.flush();
+          }
+      } catch (IOException e) {
+          e.printStackTrace();
+      }finally {
+          if(serverSocket!=null){
+              try {
+                  serverSocket.close();
+              } catch (IOException e) {
+                  e.printStackTrace();
+              }
+          }
+      }
+  }
+  ```
+
+- 多线程版本
+
+  > 解决了单线程的问题，但是由于客户端连接可能过多，会导致创建大量的线程去执行，从而使cpu效率较低。
+
+  ```java
+  public static void main(String[] args) {
+      ServerSocket serverSocket=null;
+      try {
+          serverSocket=new ServerSocket(8080);
+          System.out.println("启动服务：监听端口:8080");
+          //表示阻塞等待监听一个客户端连接,返回的socket表示连接的客户端信息
+          while(true) {
+              Socket socket = serverSocket.accept(); //连接阻塞
+              System.out.println("客户端：" + socket.getPort());
+              //IO变成了异步执行
+              new Thread(() -> {
+                  //IO处理逻辑
+              });
+          }
+  
+      } catch (IOException e) {
+          e.printStackTrace();
+      }finally {
+          if(serverSocket!=null){
+              try {
+                  serverSocket.close();
+              } catch (IOException e) {
+                  e.printStackTrace();
+              }
+          }
+      }
+  }
+  ```
+
+#### 同步非阻塞NIO
+
+> 相比较`BIO`，解决了连接阻塞和IO阻塞的问题，**但是每次轮询所有fd（包括没有发生读写事件的fd）会很浪费cpu。**
+
+```java
+public static void main(String[] args) {
+    try {
+        ServerSocketChannel serverSocketChannel=ServerSocketChannel.open();
+        serverSocketChannel.configureBlocking(false); //设置连接非阻塞
+        serverSocketChannel.socket().bind(new InetSocketAddress(8080));
+        while(true){
+            //是非阻塞的
+            SocketChannel socketChannel=serverSocketChannel.accept(); //通过accept方法，内部不断的轮询，当有链接进来，则返回；否则返回null，内部不断的轮询判断是否有数据准备好
+            //                socketChannel.configureBlocking(false);//IO非阻塞
+            if(socketChannel!=null){
+                ByteBuffer byteBuffer=ByteBuffer.allocate(1024);
+                int i=socketChannel.read(byteBuffer);
+                Thread.sleep(10000);
+                byteBuffer.flip(); //反转
+                socketChannel.write(byteBuffer);
+            }else{
+                Thread.sleep(1000);
+                System.out.println("连接位就绪");
+            }
+        }
+    } catch (IOException | InterruptedException e) {
+        e.printStackTrace();
+    }
+
+}
+```
+
+`ServerSocketChannelImpl#accept()`源码
+
+```java
+public SocketChannel accept() throws IOException {
+        synchronized (lock) {//加锁
+            if (!isOpen())
+                throw new ClosedChannelException();
+            if (!isBound())
+                throw new NotYetBoundException();
+            SocketChannel sc = null;
+
+            int n = 0;
+            FileDescriptor newfd = new FileDescriptor();
+            InetSocketAddress[] isaa = new InetSocketAddress[1];
+
+            try {
+               //由于方法加锁，为了支持中断，在当前线程上注册Interruptible，
+               //当Thread.interrupt时，会调用Interruptible，关闭channnel
+                begin();
+                if (!isOpen())
+                    return null;
+                thread = NativeThread.current();
+                for (;;) {
+                    //调用accept	接收套接字中已建立的连接
+                    //函数原型:int accept(int sockfd,struct sockaddr *addr, socklen_t *addrlen);
+                    //如果fd监听套结字的队列中没有等待的连接，套接字也没有被标记为Non-blocking，accept()会阻塞直到连接出现；
+                    //如果套接字被标记为Non-blocking，队列中也没有等待的连接，accept()返回错误EAGAIN或EWOULDBLOCK
+                    n = accept0(this.fd, newfd, isaa);
+                    if ((n == IOStatus.INTERRUPTED) && isOpen())
+                        continue;
+                    break;
+                }
+            } finally {
+                thread = 0;
+                end(n > 0);
+                assert IOStatus.check(n);
+            }
+            if (n < 1)
+                return null;
+            //设为堵塞模式，如果要使用非堵塞，用户需要手工调用configureBlocking(false)方法
+            IOUtil.configureBlocking(newfd, true);
+            InetSocketAddress isa = isaa[0];//远程连接地址
+            sc = new SocketChannelImpl(provider(), newfd, isa);
+            SecurityManager sm = System.getSecurityManager();
+            if (sm != null) {
+                try {
+                    sm.checkAccept(isa.getAddress().getHostAddress(),
+                                   isa.getPort());
+                } catch (SecurityException x) {
+                    sc.close();
+                    throw x;
+                }
+            }
+            return sc;//返回SocketChannelImpl
+
+        }
+    }
+```
+
+#### 多路复用
+
+> **IO多路复用是一种同步IO模型，实现一个线程可以监视多个文件句柄（linux中的概念：文件描述符，java语言中可以认为是`socket`）；一旦某个文件句柄就绪，就能够通知应用程序进行相应的读写操作；没有文件句柄就绪时会阻塞应用程序，交出cpu。多路是指网络连接，复用指的是同一个线程。**
+
+```java
+package com.fuzy.example.nio;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
+import java.util.Iterator;
+import java.util.Set;
+
+/**
+ * @author fuzy
+ * @date 2021/11/13 16:56
+ */
+public class SyncNonBlockServerSocket implements Runnable{
+
+    private Selector selector;
+    private ServerSocketChannel serverSocketChannel;
+
+    public SyncNonBlockServerSocket()throws Exception{
+        selector = Selector.open();
+        serverSocketChannel = ServerSocketChannel.open();
+        serverSocketChannel.configureBlocking(false);
+        serverSocketChannel.socket().bind(new InetSocketAddress(8080));
+        serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
+    }
+
+    @Override
+    public void run() {
+        while (true){
+            try {
+                int readyChannels = selector.select();//获取就绪连接，没有就绪连接会阻塞
+                if(readyChannels==0){
+                    continue;
+                }
+                Set<SelectionKey> selectionKeys = selector.selectedKeys();
+                Iterator<SelectionKey> iterator = selectionKeys.iterator();
+                while (iterator.hasNext()){
+                    //如果有就绪连接，处理事件
+                    dispatch(iterator.next());
+                    iterator.remove();
+                }
+            }catch (Exception e){
+
+            }
+        }
+    }
+
+    private void dispatch(SelectionKey key)throws IOException {
+        if(key.isAcceptable()){ //是连接事件？
+            System.out.println("连接事件");
+            register(key);
+        }else if(key.isReadable()){ //读事件
+            System.out.println("读事件");
+            read(key);
+        }else if(key.isWritable()){ //写事件
+            //TODO
+            System.out.println("写事件");
+        }
+    }
+
+    private void register(SelectionKey key) throws IOException {
+        ServerSocketChannel channel= (ServerSocketChannel) key.channel(); //客户端连接
+        SocketChannel socketChannel=channel.accept(); //获得客户端连接
+        socketChannel.configureBlocking(false);
+        socketChannel.register(selector,SelectionKey.OP_READ);
+    }
+    private void read(SelectionKey key) throws IOException {
+        //得到的是socketChannel
+        SocketChannel channel= (SocketChannel) key.channel();
+        ByteBuffer byteBuffer=ByteBuffer.allocate(1024);
+        channel.read(byteBuffer);
+        System.out.println("Server Receive Msg:"+new String(byteBuffer.array()));
+    }
+
+    public static void main(String[] args) throws Exception {
+        SyncNonBlockServerSocket syncNonBlockServerSocket = new SyncNonBlockServerSocket();
+        new Thread(syncNonBlockServerSocket).start();
+    }
+}
+
+```
+
+### 3、select、poll、epoll模型
+
+> **`epoll`跟`select`和`poll`都能提供多路I/O复用的解决方案**。在现在的Linux内核里有都能够支持，其中`epoll`是`Linux`所特有，而select则应该是`POSIX`所规定，一般操作系统均有实现。
+
+#### select
+
+- 单个进程所打开的FD是有限制的，通过FD_SETSIZE设置，默认1024
+- 每次调用select，都需要把fd集合从用户态拷贝到内核态，这个开销在fd很多时会很大
+- 对socket扫描时是线性扫描，采用轮询的方法，效率较低（高并发时）
+
+#### poll
+
+> poll本质上和select没有区别，不过poll没有最大连接数的限制，原因是它是基于链表来存储的。缺点和select一样都是采用线性扫描的方式不断轮询，效率较低
+
+#### epoll
+
+> epoll使用一个文件描述符管理多个描述符，将用户关系的文件描述符的事件存放到内核的一个事件表中，这样在用户空间和内核空间的copy只需一次。
+
+- 没有最大并发连接的限制，能打开的FD的上限远大于1024（1G的内存上能监听约10万个端口）
+- 效率提升，不是轮询的方式，不会随着FD数目的增加效率下降。只有活跃可用的FD才会调用callback函数；即Epoll最大的优点就在于它只管你“活跃”的连接，而跟连接总数无关，因此在实际的网络环境中，Epoll的效率就会远远高于select和poll
+- 内存拷贝（**零拷贝**），利用mmap()文件映射内存加速与内核空间的消息传递；即epoll使用mmap减少复制开销。
+
+#### 总结
+
+|            | select                         | poll                           | epoll                          |
+| ---------- | ------------------------------ | ------------------------------ | ------------------------------ |
+| 数据结构   | bitmap                         | 数组                           | 红黑树                         |
+| 最大连接数 | 取决于操作系统，默认1024       | 无上限                         | 无上限                         |
+| fd拷贝     | 每次调用select方法拷贝所有的fd | 每次调用select方法拷贝所有的fd | fd首次调用拷贝，每次调用不拷贝 |
+| 工作效率   | O(N)                           | O(N)                           | O(1)                           |
+
+#### 参考
+
+[深入剖析Linux IO原理和几种零拷贝机制的实现](https://juejin.cn/post/6844903949359644680#heading-11)
+
+[再过60分钟你就能了解同步异步、阻塞非阻塞、IO多路复用、select、poll、epoll等概念啦](https://juejin.cn/post/6971291445147729950#heading-44)
+
+[彻底理解 IO多路复用](https://juejin.cn/post/6844904200141438984#heading-7)
+
+[小白也能秒懂的Linux零拷贝原理](https://juejin.cn/post/6887469050515947528)
+
+[图解BIO、NIO、AIO、多路复用IO的区别](https://www.cnblogs.com/sxw123/p/13807607.html)
